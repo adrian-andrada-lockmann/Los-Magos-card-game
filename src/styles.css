@@ -188,14 +188,16 @@ p {
 }
 
 .eventBanner {
-  position: fixed;
-  top: 1rem;
+  position: absolute;
+  top: 22%;
   left: 50%;
-  z-index: 9;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.55rem;
-  width: min(360px, calc(100% - 2rem));
+  width: min(420px, calc(100% - 3rem));
+  max-width: 72%;
   border: 2px solid #d4cbb7;
   border-radius: 8px;
   background: rgba(255, 253, 247, 0.96);
@@ -394,8 +396,8 @@ p {
 }
 
 .playerBoard.targetable {
-  border-color: #b53a45;
-  box-shadow: inset 0 0 0 2px rgba(181, 58, 69, 0.2);
+  border-color: rgba(242, 188, 87, 0.46);
+  box-shadow: inset 0 0 0 2px rgba(242, 188, 87, 0.12);
 }
 
 .playerBoard.event-attack {
@@ -422,6 +424,14 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 0.8rem;
+}
+
+.turnActions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .playerBoard header span,
@@ -737,12 +747,12 @@ p {
   0%,
   100% {
     box-shadow: 0 0 0 rgba(181, 58, 69, 0);
-    transform: translateY(0);
+    translate: 0 0;
   }
 
   45% {
     box-shadow: 0 0 0 6px rgba(181, 58, 69, 0.22), 0 16px 32px rgba(181, 58, 69, 0.2);
-    transform: translateY(-3px);
+    translate: 0 -3px;
   }
 }
 
@@ -760,7 +770,7 @@ p {
 @keyframes deathPulse {
   45% {
     filter: grayscale(0.65);
-    transform: scale(0.985);
+    scale: 0.985;
     box-shadow: 0 0 0 6px rgba(23, 32, 25, 0.16);
   }
 }
@@ -768,7 +778,7 @@ p {
 @keyframes revivePulse {
   45% {
     filter: saturate(1.2);
-    transform: translateY(-3px);
+    translate: 0 -3px;
     box-shadow: 0 0 0 7px rgba(242, 188, 87, 0.24), 0 18px 34px rgba(242, 188, 87, 0.18);
   }
 }
@@ -807,5 +817,882 @@ p {
   .playingCard.horizontal {
     width: 112px;
     height: 66px;
+  }
+}
+
+.tableShell {
+  grid-template-columns: minmax(620px, 1fr) minmax(300px, 340px);
+  grid-template-rows: auto minmax(660px, 1fr);
+  gap: 0.85rem;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(242, 188, 87, 0.26), transparent 24rem),
+    radial-gradient(circle at 18% 18%, rgba(142, 49, 65, 0.28), transparent 22rem),
+    linear-gradient(145deg, rgba(16, 23, 22, 0.95), rgba(34, 47, 39, 0.94)),
+    url("https://images.unsplash.com/photo-1603481546238-487240415921?auto=format&fit=crop&w=1800&q=80") center/cover;
+}
+
+.topBar {
+  min-height: 74px;
+  border: 1px solid rgba(242, 188, 87, 0.28);
+  background: rgba(19, 24, 21, 0.82);
+  color: #fff7df;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+}
+
+.topBar .eyebrow {
+  color: #f2bc57;
+}
+
+.topBar h1 {
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+}
+
+.topBar .iconButton {
+  border-color: rgba(242, 188, 87, 0.38);
+  background: rgba(255, 253, 247, 0.08);
+  color: #fff7df;
+}
+
+.gameTable {
+  position: relative;
+  min-height: 660px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tableSurface {
+  position: absolute;
+  inset: 9% 9% 12%;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(242, 188, 87, 0.2);
+  border-radius: 48%;
+  background:
+    radial-gradient(circle at 50% 44%, rgba(242, 188, 87, 0.16), transparent 28%),
+    radial-gradient(circle at 50% 55%, rgba(0, 0, 0, 0.08), transparent 35%),
+    repeating-linear-gradient(78deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 8px),
+    linear-gradient(145deg, #16382c, #0d241e 58%, #101716);
+  box-shadow:
+    inset 0 0 0 12px rgba(255, 253, 247, 0.03),
+    inset 0 0 90px rgba(0, 0, 0, 0.56),
+    0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.tableGlow {
+  position: absolute;
+  inset: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(242, 188, 87, 0.2), transparent 64%);
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.tableCenter {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  width: min(500px, 62%);
+  padding: 1rem;
+}
+
+.tableCenter .deckPile,
+.tableCenter .lastCard {
+  border-color: rgba(242, 188, 87, 0.32);
+  background: rgba(255, 253, 247, 0.91);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.24);
+}
+
+.playerBoard {
+  width: min(250px, 27vw);
+  min-height: 240px;
+  border-color: rgba(242, 188, 87, 0.22);
+  background: rgba(255, 253, 247, 0.94);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(10px);
+}
+
+.gameTable .playerBoard {
+  position: absolute;
+  z-index: 2;
+}
+
+.playerBoard.targetable .cardSlot.action-armor.interactive {
+  border-color: rgba(48, 79, 138, 0.34);
+}
+
+.playerBoard.targetable .cardSlot.action-armor.interactive:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 0 3px rgba(48, 79, 138, 0.16);
+}
+
+.playerBoard.targetable .cardSlot.action-attack.interactive {
+  border-color: rgba(181, 58, 69, 0.32);
+}
+
+.playerBoard.targetable .cardSlot.action-attack.interactive:hover {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 0 0 3px rgba(181, 58, 69, 0.16);
+}
+
+.playerCount-2 .seat-1,
+.playerCount-3 .seat-1,
+.playerCount-4 .seat-1,
+.playerCount-5 .seat-1 {
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+.playerCount-2 .seat-2,
+.playerCount-4 .seat-3 {
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.playerCount-3 .seat-2,
+.playerCount-4 .seat-2,
+.playerCount-5 .seat-2 {
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.playerCount-3 .seat-3,
+.playerCount-4 .seat-4,
+.playerCount-5 .seat-5 {
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.playerCount-5 .seat-3 {
+  left: 26%;
+  top: 0;
+  transform: translateX(-50%);
+}
+
+.playerCount-5 .seat-4 {
+  right: 26%;
+  top: 0;
+  transform: translateX(50%);
+}
+
+.armorSlot {
+  background:
+    linear-gradient(145deg, rgba(23, 32, 25, 0.08), rgba(242, 188, 87, 0.12)),
+    #eee5d3;
+}
+
+.playingCard {
+  width: 78px;
+  height: 112px;
+  isolation: isolate;
+  color: #fff7df;
+  border: 2px solid rgba(255, 247, 223, 0.76);
+  background:
+    linear-gradient(145deg, rgba(255, 247, 223, 0.92), rgba(216, 198, 153, 0.84)),
+    #fffdf7;
+}
+
+.playingCard.horizontal {
+  width: 132px;
+  height: 82px;
+}
+
+.cardArt {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.9) contrast(1.08);
+}
+
+.playingCard::after {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  content: "";
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.38), transparent 34%, transparent 64%, rgba(0, 0, 0, 0.44)),
+    radial-gradient(circle at 50% 45%, transparent 28%, rgba(0, 0, 0, 0.18));
+}
+
+.playingCard.missingArt {
+  color: #fff7df;
+  background:
+    linear-gradient(160deg, rgba(255, 247, 223, 0.2), transparent 40%),
+    radial-gradient(circle at 50% 42%, rgba(255, 247, 223, 0.16), transparent 38%),
+    linear-gradient(145deg, #2d6a4f, #172019);
+}
+
+.playingCard.missingArt.oros {
+  background:
+    linear-gradient(160deg, rgba(255, 247, 223, 0.24), transparent 40%),
+    radial-gradient(circle at 50% 42%, rgba(255, 247, 223, 0.18), transparent 38%),
+    linear-gradient(145deg, #b8860b, #4a3510);
+}
+
+.playingCard.missingArt.copas {
+  background:
+    linear-gradient(160deg, rgba(255, 247, 223, 0.22), transparent 40%),
+    radial-gradient(circle at 50% 42%, rgba(255, 247, 223, 0.16), transparent 38%),
+    linear-gradient(145deg, #b53a45, #4a1720);
+}
+
+.playingCard.missingArt.espadas {
+  background:
+    linear-gradient(160deg, rgba(255, 247, 223, 0.22), transparent 40%),
+    radial-gradient(circle at 50% 42%, rgba(255, 247, 223, 0.16), transparent 38%),
+    linear-gradient(145deg, #304f8a, #151f38);
+}
+
+.cardFaceBadge {
+  position: absolute;
+  z-index: 2;
+  bottom: 0.55rem;
+  left: 50%;
+  min-width: 4.8rem;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 247, 223, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 18, 16, 0.72);
+  color: #fff7df;
+  padding: 0.16rem 0.34rem;
+  text-align: center;
+  font-size: 0.56rem;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.cardFallback {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  gap: 0.24rem;
+  width: 68%;
+  min-height: 54%;
+  border: 1px solid rgba(255, 247, 223, 0.34);
+  border-radius: 8px;
+  background: rgba(14, 18, 16, 0.26);
+  text-align: center;
+}
+
+.cardFallback strong {
+  color: #fff7df;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.cardFallback span {
+  color: rgba(255, 247, 223, 0.82);
+  font-size: 0.64rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.cardCorner {
+  min-width: 1.25rem;
+  min-height: 1.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(14, 18, 16, 0.72);
+  color: #fff7df;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.controlPanel {
+  position: sticky;
+  top: 1rem;
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  border-color: rgba(242, 188, 87, 0.22);
+  background: rgba(255, 253, 247, 0.94);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+@media (max-width: 1040px) {
+  .tableShell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+  }
+
+  .gameTable {
+    min-height: auto;
+    display: grid;
+    gap: 0.75rem;
+    overflow: visible;
+  }
+
+  .tableSurface,
+  .gameTable .playerBoard {
+    position: relative;
+    inset: auto;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    width: 100%;
+    transform: none;
+  }
+
+  .tableSurface {
+    min-height: 270px;
+    border-radius: 8px;
+    order: 2;
+  }
+
+  .gameTable .playerBoard.active {
+    order: 1;
+  }
+
+  .gameTable .playerBoard:not(.active) {
+    order: 3;
+  }
+
+  .tableCenter {
+    width: min(520px, calc(100% - 2rem));
+  }
+
+  .controlPanel {
+    position: sticky;
+    bottom: 0;
+    top: auto;
+    z-index: 4;
+    max-height: 70vh;
+  }
+}
+
+@media (max-width: 560px) {
+  .tableShell {
+    padding-bottom: 0;
+  }
+
+  .topBar {
+    min-height: auto;
+  }
+
+  .tableCenter {
+    gap: 0.55rem;
+    padding: 0.7rem;
+  }
+
+  .tableCenter .deckPile,
+  .tableCenter .lastCard {
+    min-width: 100%;
+  }
+
+  .playingCard {
+    width: 64px;
+    height: 92px;
+  }
+
+  .playingCard.horizontal {
+    width: 112px;
+    height: 68px;
+  }
+
+  .controlPanel {
+    margin-inline: -0.7rem;
+    border-radius: 8px 8px 0 0;
+  }
+}
+
+.setupTable {
+  position: relative;
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 1rem;
+  min-height: calc(100vh - 8rem);
+  overflow: hidden;
+  padding: 1.1rem;
+  border: 1px solid rgba(242, 188, 87, 0.2);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(242, 188, 87, 0.2), transparent 24rem),
+    linear-gradient(145deg, rgba(13, 32, 27, 0.92), rgba(13, 18, 17, 0.96));
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.3), 0 22px 60px rgba(0, 0, 0, 0.28);
+}
+
+.setupSurface {
+  position: absolute;
+  inset: 13% 8% 8%;
+  border: 1px solid rgba(242, 188, 87, 0.16);
+  border-radius: 48%;
+  background:
+    repeating-linear-gradient(78deg, rgba(255, 255, 255, 0.024) 0 2px, transparent 2px 8px),
+    radial-gradient(circle at 50% 45%, rgba(242, 188, 87, 0.13), transparent 32%),
+    linear-gradient(145deg, #15372b, #0d231d 62%, #0a1513);
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.58);
+  pointer-events: none;
+}
+
+.setupHeader,
+.setupGrid {
+  position: relative;
+  z-index: 1;
+}
+
+.setupHeader {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  padding-top: 1.1rem;
+  text-align: center;
+  color: #fff7df;
+}
+
+.setupHeader .eyebrow {
+  color: #c94a5b;
+  font-size: 0.92rem;
+}
+
+.setupHeader h2 {
+  font-size: clamp(2.1rem, 4vw, 3.4rem);
+  line-height: 1;
+}
+
+.setupHeader p:last-child {
+  max-width: 46ch;
+  color: rgba(255, 247, 223, 0.78);
+  font-size: 1.03rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.setupGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+  align-content: center;
+  min-height: 420px;
+}
+
+.setupPlayerTray {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem;
+  border: 1px solid rgba(242, 188, 87, 0.26);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.94);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
+}
+
+.setupPlayerTray.ready {
+  background: rgba(248, 244, 232, 0.9);
+}
+
+.setupPlayerTray header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.readyBadge,
+.chooseBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.8rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.readyBadge {
+  background: #e6f2df;
+  color: #28784d;
+}
+
+.chooseBadge {
+  background: #fff0cd;
+  color: #8a5b08;
+}
+
+.setupCardChoices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.armorChoiceButton {
+  display: grid;
+  justify-items: center;
+  gap: 0.42rem;
+  min-height: 150px;
+  padding: 0.45rem 0.32rem;
+  border-color: rgba(36, 46, 40, 0.18);
+  background:
+    linear-gradient(180deg, rgba(255, 253, 247, 0.96), rgba(238, 229, 211, 0.96));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.56);
+}
+
+.armorChoiceButton .playingCard {
+  width: 84px;
+  height: 118px;
+}
+
+.armorChoiceButton .cardCorner {
+  min-width: 1.55rem;
+  min-height: 1.55rem;
+  border: 1px solid rgba(255, 247, 223, 0.42);
+  background: rgba(6, 10, 8, 0.84);
+  color: #fff7df;
+  font-size: 0.86rem;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.34);
+}
+
+.armorChoiceButton:hover,
+.armorChoiceButton:focus-visible {
+  border-color: #f2bc57;
+  box-shadow: 0 0 0 3px rgba(242, 188, 87, 0.24), 0 12px 28px rgba(0, 0, 0, 0.14);
+  transform: translateY(-1px);
+}
+
+.armorChoiceButton span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #2b342f;
+  font-weight: 900;
+}
+
+.setupReadyState {
+  min-height: 174px;
+  display: grid;
+  align-items: center;
+}
+
+.playerBoard {
+  align-content: start;
+  gap: 0.7rem;
+  min-height: 224px;
+}
+
+.playerBoard header {
+  align-items: start;
+}
+
+.playerBoard header h2 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: #1d2720;
+  line-height: 1;
+}
+
+.hpBadge {
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 68px;
+  min-height: 30px;
+  padding: 0.26rem 0.52rem;
+  border: 1px solid rgba(138, 38, 53, 0.2);
+  border-radius: 999px;
+  background: linear-gradient(145deg, rgba(255, 247, 223, 0.96), rgba(255, 236, 224, 0.96));
+  color: #8a2635;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.68), 0 4px 12px rgba(138, 38, 53, 0.12);
+}
+
+.hpBadge strong {
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.hpBadge span {
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.hpBadge.dead {
+  border-color: rgba(23, 32, 25, 0.22);
+  background: linear-gradient(145deg, rgba(245, 241, 232, 0.96), rgba(226, 221, 210, 0.96));
+  color: #4a4032;
+}
+
+.cardSlot {
+  position: relative;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  align-items: center;
+  width: 100%;
+  gap: 0.55rem;
+  min-height: 94px;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(74, 64, 50, 0.12);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 253, 247, 0.62), rgba(232, 223, 206, 0.88)),
+    #eee5d3;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  color: inherit;
+  text-align: inherit;
+}
+
+button.cardSlot {
+  cursor: pointer;
+}
+
+.slotIcon {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(23, 32, 25, 0.14);
+  border-radius: 50%;
+  background: rgba(255, 253, 247, 0.68);
+  color: #172019;
+}
+
+.slotLabel {
+  display: none;
+}
+
+.slotCards {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 82px;
+}
+
+.slotCards .playingCard {
+  flex: 0 0 auto;
+}
+
+.cardSlot .emptyState,
+.cardSlot > span:not(.slotLabel) {
+  color: #5f5648;
+  font-weight: 800;
+}
+
+.emptySlot .slotCards {
+  min-height: 72px;
+}
+
+.emptySlotIcon {
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  place-self: center;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border: 1px solid rgba(74, 64, 50, 0.16);
+  border-radius: 50%;
+  background: rgba(255, 253, 247, 0.6);
+  color: rgba(74, 64, 50, 0.72);
+}
+
+.slotActionIcon {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(23, 32, 25, 0.44);
+  color: #fff7df;
+  opacity: 0;
+  transition: opacity 150ms ease;
+  pointer-events: none;
+}
+
+.cardSlot.action-armor .slotActionIcon {
+  background: rgba(35, 58, 104, 0.58);
+}
+
+.cardSlot.action-attack .slotActionIcon {
+  background: rgba(138, 38, 53, 0.58);
+}
+
+.cardSlot.interactive:hover .slotActionIcon {
+  opacity: 1;
+}
+
+.playerBoard footer {
+  min-height: 0;
+  justify-content: end;
+}
+
+.tableCenter {
+  width: min(560px, 68%);
+  gap: 1rem;
+}
+
+.tableCenter .deckPile {
+  border-color: transparent;
+  background: transparent;
+}
+
+.deckPile {
+  position: relative;
+  align-items: center;
+  min-width: 92px;
+  min-height: 112px;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+}
+
+.deckPile .pileGraphic {
+  width: 74px;
+  height: 98px;
+  flex: 0 0 74px;
+}
+
+.deckPile.deck .pileGraphic span {
+  border-color: rgba(23, 32, 25, 0.8);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(255, 247, 223, 0.14), transparent 42%),
+    repeating-linear-gradient(45deg, rgba(255, 247, 223, 0.12) 0 4px, transparent 4px 9px),
+    #8a2635;
+}
+
+.deckPile.deck .pileGraphic span:nth-child(1) {
+  transform: translate(8px, -5px) rotate(5deg);
+}
+
+.deckPile.deck .pileGraphic span:nth-child(2) {
+  transform: translate(4px, 0) rotate(-2deg);
+}
+
+.deckPile.deck .pileGraphic span:nth-child(3) {
+  transform: translate(0, 5px) rotate(1deg);
+}
+
+.deckPile.discard .pileGraphic {
+  display: grid;
+  place-items: center;
+}
+
+.deckPile.discard .pileGraphic::before,
+.deckPile.discard .pileGraphic::after {
+  position: absolute;
+  inset: 4px;
+  content: "";
+  border: 2px solid rgba(23, 32, 25, 0.18);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.36);
+}
+
+.deckPile.discard .pileGraphic::before {
+  transform: translate(8px, -5px) rotate(5deg);
+}
+
+.deckPile.discard .pileGraphic::after {
+  transform: translate(4px, 1px) rotate(-2deg);
+}
+
+.deckPile.discard .pileGraphic .playingCard {
+  z-index: 1;
+  width: 66px;
+  height: 92px;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
+}
+
+.deckPile.discard .pileGraphic:empty {
+  border: 2px dashed rgba(23, 32, 25, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.34);
+}
+
+.pileMeta {
+  position: absolute;
+  right: -0.2rem;
+  bottom: 0.2rem;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 0.38rem;
+  border: 1px solid rgba(23, 32, 25, 0.2);
+  border-radius: 999px;
+  background: rgba(255, 253, 247, 0.95);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.pileMeta strong {
+  color: #172019;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.deckPile.isAnimated .pileGraphic {
+  animation: cardTwitch 620ms ease both;
+}
+
+@media (max-width: 1040px) {
+  .setupTable {
+    min-height: auto;
+  }
+
+  .setupSurface {
+    inset: 10% 4% 4%;
+    border-radius: 8px;
+  }
+
+  .setupGrid {
+    min-height: auto;
+  }
+
+  .tableCenter {
+    width: min(560px, calc(100% - 2rem));
+  }
+}
+
+@media (max-width: 640px) {
+  .setupTable {
+    padding: 0.8rem;
+  }
+
+  .setupGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .setupCardChoices {
+    grid-template-columns: repeat(3, minmax(82px, 1fr));
+    gap: 0.45rem;
+  }
+
+  .armorChoiceButton {
+    min-height: 132px;
+    padding: 0.55rem 0.25rem;
+  }
+
+  .armorChoiceButton .playingCard {
+    width: 70px;
+    height: 100px;
+  }
+
+  .armorChoiceButton span {
+    font-size: 0.82rem;
+  }
+
+  .cardSlot {
+    grid-template-columns: 28px minmax(0, 1fr);
+    padding-inline: 0.5rem;
+  }
+
+  .slotCards {
+    gap: 0.32rem;
+  }
+
+  .deckPile {
+    width: 100%;
   }
 }

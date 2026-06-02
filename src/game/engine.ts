@@ -174,6 +174,7 @@ export function emergencyAction(
       ...nextState,
       discardPile: [...current.hpCards, ...nextState.discardPile],
     };
+    nextState = markLowHp(nextState, playerId);
     return endTurn(withLog(nextState, `${player.name} revela su carta secreta ${secretCard.value} y la usa para quedar con ${secretCard.value} HP.`));
   }
 
@@ -206,7 +207,7 @@ export function revealEmergencyCard(state: GameState, playerId: string): GameSta
 
   const nextState = updatePlayer({ ...draw.state, pendingEmergency: { playerId, card: draw.card } }, playerId, {
     emergencyUses: player.emergencyUses + 1,
-    lowHpArmed: state.settings.emergencyMode === "each-low-hp" ? false : player.lowHpArmed,
+    lowHpArmed: player.lowHpArmed,
   });
   return withLog(nextState, `${player.name} levanta una carta secreta de emergencia.`);
 }
@@ -272,7 +273,7 @@ export function hpTotal(cards: Card[]): number {
 export function canUseEmergency(player: Player, mode: "once-per-game" | "each-low-hp"): boolean {
   if (player.status !== "alive" || hpTotal(player.hpCards) > 3) return false;
   if (mode === "once-per-game") return player.emergencyUses === 0;
-  return !player.lowHpArmed;
+  return true;
 }
 
 export function cardLabel(card: Card): string {

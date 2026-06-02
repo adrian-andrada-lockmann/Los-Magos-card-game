@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyDamage, attackPlayer, chooseInitialArmor, createGame, createSpanishDeck, emergencyAction, hpTotal, revealEmergencyCard, reviveAttempt } from "./engine";
+import { applyDamage, attackPlayer, chooseInitialArmor, createGame, createSpanishDeck, emergencyAction, hpTotal, passTurn, revealEmergencyCard, reviveAttempt } from "./engine";
 import type { Card, GameState, Player, Settings } from "./types";
 
 const settings: Settings = {
@@ -276,5 +276,33 @@ describe("Los Magos engine", () => {
     expect(resolved.players[0].hpCards).toHaveLength(1);
     expect(resolved.players[0].hpCards[0].value).toBe(10);
     expect(hpTotal(resolved.players[0].hpCards)).toBe(10);
+  });
+
+  it("allows low hp emergency on every turn while the player stays at 3 hp or less", () => {
+    const lowHpSettings: Settings = {
+      ...settings,
+      emergencyMode: "each-low-hp",
+    };
+    const game = state({
+      settings: lowHpSettings,
+      players: [
+        { ...basePlayer("p1", "Uno"), hpCards: [card(1), card(2, "copas")], armorCard: card(5), lowHpArmed: true, emergencyUses: 1 },
+        { ...basePlayer("p2", "Dos"), hpCards: [card(8), card(8, "copas")], armorCard: card(4) },
+      ],
+      drawDeck: [card(10, "espadas"), card(11, "bastos")],
+      turnPlayerId: "p1",
+    });
+
+    const firstReveal = revealEmergencyCard(game, "p1");
+    expect(firstReveal.pendingEmergency?.card.value).toBe(10);
+
+    const resolved = emergencyAction(firstReveal, "p1", "armor", "p1");
+    expect(resolved.turnPlayerId).toBe("p2");
+
+    const backToLowHpPlayer = passTurn(resolved);
+    expect(backToLowHpPlayer.turnPlayerId).toBe("p1");
+
+    const secondReveal = revealEmergencyCard(backToLowHpPlayer, "p1");
+    expect(secondReveal.pendingEmergency?.card.value).toBe(11);
   });
 });
