@@ -1023,6 +1023,9 @@ function onlineServerUrl(): string {
   if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
     return "ws://localhost:8787";
   }
+  if (window.location.hostname.endsWith("github.io")) {
+    return "wss://los-magos-online.adrooned.workers.dev/ws";
+  }
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   return `${protocol}://${window.location.host}/ws`;
 }
