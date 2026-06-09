@@ -122,6 +122,33 @@ p {
   padding: 1rem;
 }
 
+.onlineBlock {
+  grid-column: 1 / -1;
+}
+
+.onlineLobby {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.8rem;
+  border: 1px solid #d4cbb7;
+  border-radius: 8px;
+  background: #f4f1e8;
+}
+
+.onlineLobby span {
+  color: #4a4032;
+  font-size: 0.9rem;
+}
+
+.onlineError {
+  border-left: 4px solid #b53a45;
+  border-radius: 8px;
+  background: #fff4f0;
+  color: #6d2029;
+  padding: 0.65rem 0.75rem;
+  font-size: 0.9rem;
+}
+
 .nameList {
   display: grid;
   gap: 0.6rem;
@@ -497,6 +524,27 @@ p {
   font-size: 0.68rem;
   font-weight: 900;
   line-height: 1;
+}
+
+.cardValueBadge {
+  position: absolute;
+  left: 50%;
+  bottom: 0.5rem;
+  z-index: 3;
+  min-width: 2.35rem;
+  min-height: 1.85rem;
+  display: grid;
+  place-items: center;
+  transform: translateX(-50%);
+  border: 1px solid rgba(255, 247, 223, 0.42);
+  border-radius: 999px;
+  background: rgba(12, 15, 13, 0.74);
+  color: #fff7df;
+  padding: 0.12rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 950;
+  line-height: 1;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
 .cardCorner.top {
@@ -1054,21 +1102,7 @@ p {
 }
 
 .cardFaceBadge {
-  position: absolute;
-  z-index: 2;
-  bottom: 0.55rem;
-  left: 50%;
-  min-width: 4.8rem;
-  transform: translateX(-50%);
-  border: 1px solid rgba(255, 247, 223, 0.42);
-  border-radius: 999px;
-  background: rgba(14, 18, 16, 0.72);
-  color: #fff7df;
-  padding: 0.16rem 0.34rem;
-  text-align: center;
-  font-size: 0.56rem;
-  letter-spacing: 0;
-  text-transform: uppercase;
+  display: none;
 }
 
 .cardFallback {
@@ -1107,6 +1141,10 @@ p {
   background: rgba(14, 18, 16, 0.72);
   color: #fff7df;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+.playingCard .cardCorner {
+  display: none;
 }
 
 .controlPanel {
@@ -1195,9 +1233,17 @@ p {
     height: 92px;
   }
 
-  .playingCard.horizontal {
-    width: 112px;
-    height: 68px;
+  .cardSlot.action-armor {
+    min-height: 122px;
+  }
+
+  .cardSlot.action-armor .slotCards {
+    min-height: 108px;
+  }
+
+  .cardSlot.action-armor .playingCard {
+    width: 70px;
+    height: 100px;
   }
 
   .controlPanel {
@@ -1439,6 +1485,10 @@ p {
   text-align: inherit;
 }
 
+.cardSlot.action-armor {
+  min-height: 142px;
+}
+
 button.cardSlot {
   cursor: pointer;
 }
@@ -1470,6 +1520,15 @@ button.cardSlot {
 
 .slotCards .playingCard {
   flex: 0 0 auto;
+}
+
+.cardSlot.action-armor .slotCards {
+  min-height: 128px;
+}
+
+.cardSlot.action-armor .playingCard {
+  width: 82px;
+  height: 118px;
 }
 
 .cardSlot .emptyState,
@@ -1528,8 +1587,8 @@ button.cardSlot {
 }
 
 .tableCenter {
-  width: min(560px, 68%);
-  gap: 1rem;
+  width: min(640px, 72%);
+  gap: 1.4rem;
 }
 
 .tableCenter .deckPile {
@@ -1540,90 +1599,132 @@ button.cardSlot {
 .deckPile {
   position: relative;
   align-items: center;
-  min-width: 92px;
-  min-height: 112px;
+  justify-content: center;
+  min-width: 126px;
+  min-height: 168px;
   padding: 0;
   border: 0;
   box-shadow: none;
 }
 
 .deckPile .pileGraphic {
-  width: 74px;
-  height: 98px;
-  flex: 0 0 74px;
+  width: 104px;
+  height: 146px;
+  flex: 0 0 104px;
 }
 
-.deckPile.deck .pileGraphic span {
+.deckPile.deck .pileGraphic .cardBackLayer,
+.deckPile.deck .pileGraphic .cardBackArt {
+  position: absolute;
+  inset: 0;
   border-color: rgba(23, 32, 25, 0.8);
-  border-radius: 8px;
-  background:
-    linear-gradient(135deg, rgba(255, 247, 223, 0.14), transparent 42%),
-    repeating-linear-gradient(45deg, rgba(255, 247, 223, 0.12) 0 4px, transparent 4px 9px),
-    #8a2635;
+  border-radius: 10px;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.32);
 }
 
-.deckPile.deck .pileGraphic span:nth-child(1) {
+.deckPile.deck .pileGraphic .cardBackLayer {
+  border: 2px solid rgba(23, 32, 25, 0.8);
+  background:
+    radial-gradient(circle at 50% 38%, rgba(242, 188, 87, 0.16), transparent 34%),
+    linear-gradient(135deg, rgba(255, 247, 223, 0.18), transparent 42%),
+    repeating-linear-gradient(45deg, rgba(255, 247, 223, 0.12) 0 5px, transparent 5px 11px),
+    linear-gradient(145deg, #9e3345, #4d1724);
+}
+
+.deckPile.deck .pileGraphic .cardBackLayer:nth-child(1) {
   transform: translate(8px, -5px) rotate(5deg);
 }
 
-.deckPile.deck .pileGraphic span:nth-child(2) {
+.deckPile.deck .pileGraphic .cardBackLayer:nth-child(2) {
   transform: translate(4px, 0) rotate(-2deg);
 }
 
-.deckPile.deck .pileGraphic span:nth-child(3) {
+.deckPile.deck .pileGraphic .cardBackArt {
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 247, 223, 0.54);
   transform: translate(0, 5px) rotate(1deg);
 }
 
 .deckPile.discard .pileGraphic {
   display: grid;
   place-items: center;
+  transform: rotate(3deg);
 }
 
-.deckPile.discard .pileGraphic::before,
-.deckPile.discard .pileGraphic::after {
+.discardStack {
+  position: relative;
+  width: 118px;
+  height: 168px;
+}
+
+.discardCardLayer {
   position: absolute;
-  inset: 4px;
-  content: "";
-  border: 2px solid rgba(23, 32, 25, 0.18);
-  border-radius: 8px;
-  background: rgba(255, 253, 247, 0.36);
+  inset: 0;
+  width: 118px;
+  height: 168px;
 }
 
-.deckPile.discard .pileGraphic::before {
-  transform: translate(8px, -5px) rotate(5deg);
+.discardCardLayer.layer-1 {
+  z-index: 3;
+  transform: rotate(-4deg);
 }
 
-.deckPile.discard .pileGraphic::after {
-  transform: translate(4px, 1px) rotate(-2deg);
+.discardCardLayer.layer-2 {
+  z-index: 2;
+  transform: translate(10px, -7px) rotate(5deg);
+  filter: brightness(0.92) saturate(0.92);
+}
+
+.discardCardLayer.layer-3 {
+  z-index: 1;
+  transform: translate(18px, -11px) rotate(10deg);
+  filter: brightness(0.84) saturate(0.85);
 }
 
 .deckPile.discard .pileGraphic .playingCard {
-  z-index: 1;
-  width: 66px;
-  height: 92px;
-  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
+  width: 100%;
+  height: 100%;
+  box-shadow: 0 22px 44px rgba(0, 0, 0, 0.34);
+}
+
+.deckPile.discard .playingCard::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.04), transparent 26%, transparent 78%, rgba(0, 0, 0, 0.08));
+}
+
+.deckPile.discard .cardFaceBadge {
+  display: none;
+}
+
+.deckPile.discard .cardValueBadge {
+  border: 1px solid rgba(255, 247, 223, 0.34);
+  background: rgba(12, 15, 13, 0.6);
+  font-size: 1.08rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.85);
 }
 
 .deckPile.discard .pileGraphic:empty {
   border: 2px dashed rgba(23, 32, 25, 0.22);
-  border-radius: 8px;
+  border-radius: 10px;
   background: rgba(255, 253, 247, 0.34);
 }
 
 .pileMeta {
   position: absolute;
-  right: -0.2rem;
-  bottom: 0.2rem;
+  right: 0.18rem;
+  bottom: 0.05rem;
   z-index: 3;
   display: grid;
   place-items: center;
-  min-width: 2rem;
-  height: 2rem;
-  padding: 0 0.38rem;
-  border: 1px solid rgba(23, 32, 25, 0.2);
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.45rem;
+  border: 1px solid rgba(242, 188, 87, 0.34);
   border-radius: 999px;
   background: rgba(255, 253, 247, 0.95);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.28);
 }
 
 .pileMeta strong {
@@ -1694,5 +1795,1167 @@ button.cardSlot {
 
   .deckPile {
     width: 100%;
+  }
+}
+
+.tableShell {
+  grid-template-columns: minmax(600px, 1fr) minmax(292px, 326px);
+  grid-template-rows: minmax(620px, 1fr);
+  gap: 0.75rem;
+  padding: 0.85rem;
+  background:
+    linear-gradient(rgba(8, 10, 9, 0.48), rgba(8, 10, 9, 0.68)),
+    url("/table/ritual-table.webp") center/cover fixed,
+    #11110f;
+}
+
+.tableResetButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 8;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 247, 223, 0.42);
+  border-radius: 999px;
+  background: rgba(14, 18, 16, 0.72);
+  color: #fff7df;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(10px);
+}
+
+.tableResetButton:hover,
+.tableResetButton:focus-visible {
+  border-color: #f2bc57;
+  background: rgba(32, 26, 18, 0.86);
+  box-shadow: 0 0 0 4px rgba(242, 188, 87, 0.2), 0 16px 32px rgba(0, 0, 0, 0.42);
+}
+
+.gameTable {
+  min-height: 620px;
+  border: 1px solid rgba(242, 188, 87, 0.18);
+  background: rgba(4, 6, 5, 0.22);
+  box-shadow: inset 0 0 110px rgba(0, 0, 0, 0.34);
+}
+
+.tableSurface {
+  inset: 8% 8% 10%;
+  border: 1px solid rgba(242, 188, 87, 0.34);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(242, 188, 87, 0.18), transparent 31%),
+    linear-gradient(rgba(8, 10, 9, 0.18), rgba(8, 10, 9, 0.4)),
+    url("/table/ritual-table.webp") center/cover;
+}
+
+.tableGlow {
+  inset: 18%;
+  background: radial-gradient(circle, rgba(242, 188, 87, 0.22), transparent 66%);
+}
+
+.setupTable {
+  min-height: calc(100vh - 1.7rem);
+  padding: 0.9rem;
+  background:
+    linear-gradient(rgba(8, 10, 9, 0.52), rgba(8, 10, 9, 0.68)),
+    url("/table/ritual-table.webp") center/cover;
+}
+
+.setupSurface {
+  inset: 9% 5% 5%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(242, 188, 87, 0.13), transparent 34%),
+    rgba(9, 13, 11, 0.26);
+}
+
+.setupHeader {
+  gap: 0.55rem;
+  padding-top: 0.55rem;
+}
+
+.setupHeader h2 {
+  font-size: clamp(1.8rem, 3vw, 2.7rem);
+}
+
+.setupHeader p:last-child {
+  font-size: 0.95rem;
+}
+
+.setupGrid {
+  grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+  gap: 0.7rem;
+  min-height: 360px;
+}
+
+.setupPlayerTray {
+  gap: 0.65rem;
+  padding: 0.75rem;
+  background: rgba(255, 253, 247, 0.92);
+  backdrop-filter: blur(8px);
+}
+
+.setupCardChoices {
+  gap: 0.38rem;
+}
+
+.armorChoiceButton {
+  min-height: 154px;
+  padding: 0.42rem 0.24rem;
+}
+
+.armorChoiceButton .playingCard {
+  width: 88px;
+  height: 124px;
+}
+
+.playerBoard {
+  width: min(236px, 25.5vw);
+  min-height: 214px;
+  gap: 0.52rem;
+  padding: 0.68rem;
+  border-color: rgba(242, 188, 87, 0.28);
+  background: rgba(255, 253, 247, 0.9);
+}
+
+.playerBoard.active {
+  outline: 5px solid #f2bc57;
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 7px rgba(242, 188, 87, 0.24),
+    0 0 28px rgba(242, 188, 87, 0.44),
+    0 18px 42px rgba(0, 0, 0, 0.3);
+}
+
+.playerBoard header {
+  gap: 0.55rem;
+}
+
+.playerBoard header h2 {
+  font-size: 1.08rem;
+}
+
+.hpBadge {
+  min-width: 62px;
+  min-height: 28px;
+  padding: 0.22rem 0.46rem;
+}
+
+.cardSlot {
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 0.42rem;
+  min-height: 86px;
+  padding: 0.46rem 0.5rem;
+}
+
+.cardSlot.action-armor {
+  min-height: 128px;
+}
+
+.slotIcon {
+  width: 26px;
+  height: 26px;
+}
+
+.slotCards {
+  gap: 0.34rem;
+  min-height: 78px;
+}
+
+.cardSlot.action-armor .slotCards {
+  min-height: 116px;
+}
+
+.cardSlot.action-armor .playingCard {
+  width: 80px;
+  height: 114px;
+}
+
+.playingCard {
+  width: 74px;
+  height: 104px;
+}
+
+.cardValueBadge {
+  left: 50%;
+  bottom: 0.34rem;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  padding: 0.08rem 0.38rem;
+  border: 1px solid rgba(255, 247, 223, 0.32);
+  background: rgba(5, 6, 6, 0.58);
+  color: #ffffff;
+  font-size: 1.22rem;
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  text-shadow:
+    -2px -2px 0 #050505,
+    2px -2px 0 #050505,
+    -2px 2px 0 #050505,
+    2px 2px 0 #050505,
+    0 3px 8px rgba(0, 0, 0, 0.95);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.38);
+}
+
+.armorChoiceButton .cardValueBadge,
+.cardSlot.action-armor .cardValueBadge {
+  bottom: 0.4rem;
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+  font-size: 1.38rem;
+}
+
+.deckPile.discard .cardValueBadge {
+  border: 1px solid rgba(255, 247, 223, 0.3);
+  background: rgba(5, 6, 6, 0.52);
+}
+
+.pileMeta {
+  right: 0.1rem;
+  bottom: 0.08rem;
+  min-width: 2rem;
+  height: 2rem;
+  background: rgba(255, 253, 247, 0.92);
+}
+
+.controlPanel {
+  top: 0.85rem;
+  max-height: calc(100vh - 1.7rem);
+  padding: 0.85rem;
+  background: rgba(255, 253, 247, 0.92);
+}
+
+@media (max-width: 1040px) {
+  .tableShell {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto;
+    padding: 0.75rem;
+  }
+
+  .gameTable {
+    min-height: auto;
+    padding-top: 3.1rem;
+  }
+
+  .tableResetButton {
+    top: 0.95rem;
+    right: 0.95rem;
+  }
+
+  .playerBoard {
+    width: 100%;
+  }
+
+  .tableSurface {
+    min-height: 260px;
+    background:
+      radial-gradient(circle at 50% 45%, rgba(242, 188, 87, 0.16), transparent 32%),
+      linear-gradient(rgba(8, 10, 9, 0.24), rgba(8, 10, 9, 0.46)),
+      url("/table/ritual-table.webp") center/cover;
+  }
+}
+
+@media (max-width: 640px) {
+  .tableShell {
+    padding: 0.55rem;
+    background-attachment: scroll;
+  }
+
+  .tableResetButton {
+    top: 0.65rem;
+    right: 0.65rem;
+    width: 40px;
+    height: 40px;
+  }
+
+  .setupTable {
+    min-height: auto;
+    padding: 0.65rem;
+  }
+
+  .setupGrid {
+    gap: 0.58rem;
+  }
+
+  .setupCardChoices {
+    grid-template-columns: repeat(3, minmax(74px, 1fr));
+  }
+
+  .armorChoiceButton {
+    min-height: 130px;
+  }
+
+  .armorChoiceButton .playingCard {
+    width: 68px;
+    height: 96px;
+  }
+
+  .armorChoiceButton .cardValueBadge {
+    min-width: 1.9rem;
+    min-height: 1.9rem;
+    font-size: 1.08rem;
+  }
+
+  .gameTable {
+    padding-top: 2.85rem;
+  }
+
+  .playingCard {
+    width: 62px;
+    height: 88px;
+  }
+
+  .cardValueBadge {
+    min-width: 1.85rem;
+    min-height: 1.85rem;
+    font-size: 1.02rem;
+    text-shadow:
+      -1.5px -1.5px 0 #050505,
+      1.5px -1.5px 0 #050505,
+      -1.5px 1.5px 0 #050505,
+      1.5px 1.5px 0 #050505,
+      0 2px 6px rgba(0, 0, 0, 0.95);
+  }
+
+  .slotCards {
+    gap: 0.26rem;
+  }
+
+  .cardSlot.action-armor .playingCard {
+    width: 68px;
+    height: 96px;
+  }
+
+  .controlPanel {
+    margin-inline: -0.55rem;
+    max-height: 66vh;
+  }
+}
+
+.deckPile.discard .cardValueBadge {
+  bottom: 0.34rem;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  padding: 0.08rem 0.38rem;
+  border: 1px solid rgba(255, 247, 223, 0.32);
+  background: rgba(5, 6, 6, 0.58);
+  font-size: 1.22rem;
+}
+
+.gameTable {
+  overflow: visible;
+}
+
+.playerBoard.dead {
+  min-height: 142px;
+  opacity: 1;
+  filter: none;
+  background:
+    linear-gradient(145deg, rgba(255, 253, 247, 0.9), rgba(232, 223, 206, 0.92)),
+    #eee5d3;
+}
+
+.playerBoard.dead header {
+  align-items: center;
+}
+
+.deadState {
+  display: grid;
+  place-items: center;
+  min-height: 82px;
+  border: 1px solid rgba(23, 32, 25, 0.14);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle, rgba(23, 32, 25, 0.1), transparent 58%),
+    rgba(255, 253, 247, 0.42);
+  color: #172019;
+}
+
+.playerBoard.dead.active .deadState {
+  background:
+    radial-gradient(circle, rgba(242, 188, 87, 0.18), transparent 58%),
+    rgba(255, 253, 247, 0.5);
+}
+
+.reviveBubble {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 0.65rem);
+  z-index: 6;
+  display: grid;
+  gap: 0.5rem;
+  width: 184px;
+  padding: 0.65rem;
+  border: 1px solid rgba(242, 188, 87, 0.5);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.96);
+  color: #172019;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+  transform: translateY(-50%);
+}
+
+.reviveBubbleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  color: #8a2635;
+  font-size: 0.86rem;
+}
+
+.reviveNumberGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.28rem;
+}
+
+.reviveNumberGrid button {
+  min-width: 0;
+  min-height: 32px;
+  padding: 0;
+  border-color: rgba(74, 64, 50, 0.2);
+  background: rgba(255, 253, 247, 0.82);
+  font-weight: 900;
+}
+
+.reviveNumberGrid button.selected {
+  border-color: #8a2635;
+  background: #8a2635;
+  color: #fffdf7;
+  box-shadow: 0 0 0 3px rgba(138, 38, 53, 0.16);
+}
+
+.reviveAction {
+  min-height: 36px;
+  padding: 0.45rem 0.65rem;
+  border-color: #f2bc57;
+  background: #fff4d8;
+  color: #6d4205;
+  font-weight: 900;
+}
+
+.playerCount-3 .seat-3 .reviveBubble,
+.playerCount-4 .seat-4 .reviveBubble,
+.playerCount-5 .seat-5 .reviveBubble {
+  right: calc(100% + 0.65rem);
+  left: auto;
+}
+
+.playerCount-2 .seat-1 .reviveBubble,
+.playerCount-3 .seat-1 .reviveBubble,
+.playerCount-4 .seat-1 .reviveBubble,
+.playerCount-5 .seat-1 .reviveBubble {
+  top: auto;
+  bottom: 0;
+  transform: none;
+}
+
+.playerCount-5 .seat-3 .reviveBubble,
+.playerCount-5 .seat-4 .reviveBubble {
+  top: calc(100% + 0.55rem);
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+@media (max-width: 1040px) {
+  .playerBoard.dead {
+    min-height: 0;
+  }
+
+  .deadState {
+    min-height: 72px;
+  }
+
+  .reviveBubble,
+  .playerCount-2 .seat-1 .reviveBubble,
+  .playerCount-3 .seat-1 .reviveBubble,
+  .playerCount-4 .seat-1 .reviveBubble,
+  .playerCount-5 .seat-1 .reviveBubble,
+  .playerCount-3 .seat-3 .reviveBubble,
+  .playerCount-4 .seat-4 .reviveBubble,
+  .playerCount-5 .seat-3 .reviveBubble,
+  .playerCount-5 .seat-4 .reviveBubble,
+  .playerCount-5 .seat-5 .reviveBubble {
+    position: relative;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    width: 100%;
+    margin-top: 0.25rem;
+    transform: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .deckPile.discard .cardValueBadge {
+    min-width: 1.85rem;
+    min-height: 1.85rem;
+    font-size: 1.02rem;
+  }
+
+  .reviveBubble {
+    padding: 0.55rem;
+  }
+
+  .reviveNumberGrid {
+    grid-template-columns: repeat(6, 1fr);
+  }
+
+  .reviveNumberGrid button {
+    min-height: 30px;
+  }
+}
+
+.appShell {
+  min-height: 100vh;
+  padding: clamp(0.65rem, 1.6vw, 1.25rem);
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(242, 188, 87, 0.24), transparent 26rem),
+    linear-gradient(rgba(8, 10, 9, 0.34), rgba(8, 10, 9, 0.68)),
+    url("/table/ritual-table.webp") center/cover;
+}
+
+.startPanel {
+  position: relative;
+  width: min(1180px, 100%);
+  height: min(720px, calc(100vh - 1.4rem));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: clamp(0.65rem, 1.5vh, 1rem);
+  padding: clamp(1rem, 2vw, 1.45rem);
+  border: 1px solid rgba(242, 188, 87, 0.34);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 36%, rgba(242, 188, 87, 0.16), transparent 18rem),
+    linear-gradient(rgba(14, 18, 16, 0.58), rgba(14, 18, 16, 0.72));
+  color: #fff7df;
+  box-shadow: inset 0 0 90px rgba(0, 0, 0, 0.34), 0 24px 80px rgba(0, 0, 0, 0.42);
+  backdrop-filter: blur(2px);
+}
+
+.startHero {
+  display: grid;
+  justify-items: center;
+  gap: 0.22rem;
+  text-align: center;
+}
+
+.startHero .eyebrow,
+.onlineModal .eyebrow {
+  color: #f2bc57;
+}
+
+.startPanel h1 {
+  font-size: clamp(3rem, 8vw, 6.2rem);
+  line-height: 0.86;
+  text-shadow: 0 6px 22px rgba(0, 0, 0, 0.62);
+}
+
+.startPanel .intro {
+  max-width: 42ch;
+  margin-top: 0;
+  color: rgba(255, 247, 223, 0.84);
+  font-size: clamp(0.95rem, 1.5vw, 1.08rem);
+  font-weight: 750;
+}
+
+.onlinePortalButton {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-height: 40px;
+  padding: 0.55rem 0.8rem;
+  border-color: rgba(242, 188, 87, 0.46);
+  border-radius: 999px;
+  background: rgba(14, 18, 16, 0.72);
+  color: #fff7df;
+  font-weight: 900;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
+.startPanel .setupGrid {
+  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+  align-items: stretch;
+  min-height: 0;
+  gap: clamp(0.65rem, 1.5vw, 1rem);
+}
+
+.startPanel .settingsBlock {
+  min-height: 0;
+  border-color: rgba(242, 188, 87, 0.24);
+  background:
+    linear-gradient(145deg, rgba(255, 253, 247, 0.92), rgba(239, 230, 211, 0.88)),
+    #fffdf7;
+  color: #172019;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28);
+}
+
+.startPanel .settingsBlock h2 {
+  font-size: clamp(1.2rem, 2vw, 1.7rem);
+}
+
+.playerSummons {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.playerSummons .nameList {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-content: start;
+  gap: 0.65rem;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.mageNameCard {
+  position: relative;
+  display: grid;
+  gap: 0.36rem;
+  min-height: 94px;
+  padding: 0.7rem;
+  border: 1px solid rgba(184, 134, 11, 0.42);
+  border-radius: 8px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(242, 188, 87, 0.18), transparent 56%),
+    linear-gradient(145deg, #1b2721, #0d1411);
+  color: #fff7df;
+  box-shadow: inset 0 0 0 1px rgba(255, 247, 223, 0.06), 0 10px 22px rgba(0, 0, 0, 0.2);
+}
+
+.mageNameCard span {
+  color: #f2bc57;
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.mageNameCard input {
+  border-color: rgba(255, 247, 223, 0.2);
+  background: rgba(255, 253, 247, 0.08);
+  color: #fffdf7;
+  font-size: 1.05rem;
+  font-weight: 850;
+}
+
+.mageNameCard input:focus {
+  outline: 3px solid rgba(242, 188, 87, 0.28);
+}
+
+.runeButton {
+  border-color: rgba(138, 38, 53, 0.32);
+  background: #fff4d8;
+  color: #6d4205;
+  font-weight: 900;
+}
+
+.ruleGrimoire {
+  align-content: start;
+}
+
+.ruleStepper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.65rem;
+  border: 1px solid rgba(74, 64, 50, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.56);
+}
+
+.ruleStepper > span {
+  color: #4a4032;
+  font-weight: 850;
+}
+
+.ruleStepper div {
+  display: inline-grid;
+  grid-template-columns: 34px 44px 34px;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.ruleStepper button {
+  display: grid;
+  place-items: center;
+  min-height: 34px;
+  padding: 0;
+  border-radius: 999px;
+  font-weight: 950;
+}
+
+.ruleStepper strong {
+  text-align: center;
+  font-size: 1.18rem;
+}
+
+.spellSegments {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.spellSegments button {
+  min-height: 42px;
+  padding: 0.55rem;
+  font-weight: 900;
+}
+
+.spellSegments .selected {
+  border-color: #8a2635;
+  background: #8a2635;
+  color: #fffdf7;
+}
+
+.timerSwitch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+  padding: 0.65rem;
+  border: 1px solid rgba(74, 64, 50, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 253, 247, 0.56);
+  color: #4a4032;
+  font-weight: 850;
+}
+
+.timerSwitch input {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.compactRuleInput {
+  grid-template-columns: 1fr 112px;
+  align-items: center;
+}
+
+.startPanel > .primaryButton {
+  min-height: 54px;
+  border-color: rgba(242, 188, 87, 0.5);
+  background:
+    linear-gradient(135deg, #a12e42, #6d1f30);
+  color: #fffdf7;
+  font-size: clamp(1rem, 1.6vw, 1.18rem);
+  box-shadow: 0 16px 34px rgba(138, 38, 53, 0.34);
+}
+
+.onlineModalBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(5, 7, 6, 0.62);
+  backdrop-filter: blur(8px);
+}
+
+.onlineModal {
+  width: min(460px, 100%);
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid rgba(242, 188, 87, 0.36);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, rgba(255, 253, 247, 0.96), rgba(239, 230, 211, 0.94));
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.46);
+}
+
+.onlineModal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.onlineModal h2 {
+  font-size: 1.6rem;
+}
+
+.onlineModal .iconButton {
+  border-radius: 999px;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+@media (max-width: 820px) {
+  .appShell {
+    overflow: auto;
+    align-items: start;
+  }
+
+  .startPanel {
+    height: auto;
+    min-height: calc(100vh - 1.4rem);
+  }
+
+  .startPanel .setupGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .startPanel {
+    gap: 0.42rem;
+    padding: 0.68rem;
+  }
+
+  .startHero {
+    gap: 0.08rem;
+    padding-top: 1.75rem;
+  }
+
+  .startPanel h1 {
+    font-size: clamp(2.35rem, 13vw, 3.35rem);
+  }
+
+  .startPanel .intro {
+    max-width: 30ch;
+    font-size: 0.88rem;
+    line-height: 1.08;
+  }
+
+  .onlinePortalButton {
+    top: 0.75rem;
+    right: 0.75rem;
+    min-height: 34px;
+    padding: 0.38rem 0.58rem;
+    font-size: 0.88rem;
+  }
+
+  .startPanel .setupGrid {
+    gap: 0.5rem;
+  }
+
+  .startPanel .settingsBlock {
+    gap: 0.5rem;
+    padding: 0.7rem;
+  }
+
+  .startPanel .settingsBlock h2 {
+    font-size: 1.25rem;
+  }
+
+  .playerSummons .nameList {
+    gap: 0.45rem;
+  }
+
+  .mageNameCard {
+    min-height: 76px;
+    padding: 0.48rem;
+  }
+
+  .mageNameCard input {
+    padding: 0.48rem 0.55rem;
+    font-size: 0.98rem;
+  }
+
+  .runeButton {
+    padding: 0.52rem 0.68rem;
+  }
+
+  .ruleStepper {
+    min-height: 46px;
+    padding: 0.48rem 0.55rem;
+  }
+
+  .spellSegments button {
+    min-height: 38px;
+    padding: 0.42rem;
+  }
+
+  .timerSwitch {
+    min-height: 42px;
+    padding: 0.48rem 0.55rem;
+  }
+
+  .startPanel > .primaryButton {
+    min-height: 46px;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 821px) {
+  .startPanel {
+    height: calc(100vh - 1rem);
+    padding: 0.8rem;
+    gap: 0.5rem;
+  }
+
+  .startPanel h1 {
+    font-size: clamp(2.8rem, 7vw, 4.8rem);
+  }
+
+  .mageNameCard {
+    min-height: 82px;
+    padding: 0.55rem;
+  }
+
+  .startPanel > .primaryButton {
+    min-height: 46px;
+  }
+}
+
+.armorChoiceButton {
+  align-items: center;
+}
+
+.armorChoiceButton .playingCard {
+  margin: auto;
+}
+
+.armorChoiceButton .cardValueBadge,
+.deckPile.discard .cardValueBadge,
+.cardValueBadge {
+  color: #fff;
+  display: grid;
+  place-items: center;
+  border-color: rgba(255, 247, 223, 0.38);
+  background: rgba(5, 6, 6, 0.72);
+  text-shadow:
+    -2px -2px 0 #050505,
+    2px -2px 0 #050505,
+    -2px 2px 0 #050505,
+    2px 2px 0 #050505,
+    0 3px 9px rgba(0, 0, 0, 0.98);
+}
+
+.armorChoiceButton .cardValueBadge {
+  bottom: 0.34rem;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  font-size: 1.22rem;
+}
+
+.deckPile.discard .cardValueBadge {
+  bottom: 0.52rem;
+  min-width: 2.1rem;
+  min-height: 2.1rem;
+  font-size: 1.22rem;
+}
+
+.controlPanel {
+  background:
+    linear-gradient(145deg, rgba(16, 20, 18, 0.94), rgba(31, 28, 22, 0.93));
+  color: #fff7df;
+}
+
+.controlPanel .eyebrow {
+  color: #f2bc57;
+}
+
+.controlPanel button:not(.primaryButton):not(.secretButton) {
+  border-color: rgba(242, 188, 87, 0.28);
+  background: rgba(255, 247, 223, 0.08);
+  color: #fff7df;
+}
+
+.logPanel {
+  grid-template-rows: auto minmax(0, 1fr);
+  border-top-color: rgba(242, 188, 87, 0.24);
+  min-height: 0;
+}
+
+.logPanel h2 {
+  color: #fff7df;
+  align-self: start;
+}
+
+.logMessages {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  min-height: 0;
+  overflow: auto;
+}
+
+.logPanel p,
+.logMessages p {
+  color: rgba(255, 247, 223, 0.9);
+  border-left-color: rgba(242, 188, 87, 0.34);
+  background: linear-gradient(90deg, rgba(255, 247, 223, 0.08), rgba(255, 247, 223, 0.02));
+}
+
+.logNumber {
+  color: #fffdf7;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.logWord {
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.9),
+    1px -1px 0 rgba(255, 255, 255, 0.9),
+    -1px 1px 0 rgba(255, 255, 255, 0.9),
+    1px 1px 0 rgba(255, 255, 255, 0.9),
+    0 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.logWord.attack {
+  color: #9a1f31;
+}
+
+.logWord.defend {
+  color: #193e87;
+}
+
+.logWord.revive {
+  color: #8d5700;
+}
+
+.playerBoard.seat-1 header h2,
+.setupPlayerTray:nth-child(1) h3 {
+  color: #2c76ff;
+}
+
+.playerBoard.seat-2 header h2,
+.setupPlayerTray:nth-child(2) h3 {
+  color: #b72e49;
+}
+
+.playerBoard.seat-3 header h2,
+.setupPlayerTray:nth-child(3) h3 {
+  color: #188a53;
+}
+
+.playerBoard.seat-4 header h2,
+.setupPlayerTray:nth-child(4) h3 {
+  color: #8b4ed8;
+}
+
+.playerBoard.seat-5 header h2,
+.setupPlayerTray:nth-child(5) h3 {
+  color: #b86a08;
+}
+
+.playerBoard header h2,
+.setupPlayerTray h3 {
+  text-shadow:
+    -1px -1px 0 rgba(255, 255, 255, 0.9),
+    1px -1px 0 rgba(255, 255, 255, 0.9),
+    -1px 1px 0 rgba(255, 255, 255, 0.9),
+    1px 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.startPanel .setupGrid {
+  width: min(920px, 100%);
+  justify-self: center;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.86fr);
+}
+
+.startPanel .settingsBlock {
+  border-color: rgba(242, 188, 87, 0.28);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(242, 188, 87, 0.14), transparent 54%),
+    linear-gradient(145deg, rgba(22, 29, 24, 0.94), rgba(11, 15, 13, 0.94));
+  color: #fff7df;
+}
+
+.startPanel .settingsBlock h2,
+.ruleStepper > span,
+.timerSwitch {
+  color: #fff7df;
+}
+
+.ruleStepper,
+.timerSwitch {
+  border-color: rgba(242, 188, 87, 0.18);
+  background: rgba(255, 247, 223, 0.08);
+}
+
+.ruleStepper button,
+.spellSegments button,
+.runeButton {
+  border-color: rgba(242, 188, 87, 0.28);
+  background: rgba(255, 247, 223, 0.08);
+  color: #fff7df;
+}
+
+.spellSegments .selected,
+.startPanel > .primaryButton {
+  border-color: rgba(242, 188, 87, 0.45);
+  background:
+    linear-gradient(135deg, rgba(138, 38, 53, 0.92), rgba(83, 26, 38, 0.92));
+  color: #fffdf7;
+}
+
+.startPanel > .primaryButton {
+  justify-self: center;
+  width: min(320px, 100%);
+  min-height: 48px;
+  padding-inline: 1.4rem;
+}
+
+.rulesPortalButton {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-height: 40px;
+  padding: 0.55rem 0.8rem;
+  border-color: rgba(242, 188, 87, 0.46);
+  border-radius: 999px;
+  background: rgba(14, 18, 16, 0.72);
+  color: #fff7df;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.34);
+}
+
+.rulesModal {
+  width: min(560px, 100%);
+}
+
+.rulesGuide {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.rulesGuide p {
+  border-left: 3px solid rgba(242, 188, 87, 0.42);
+  padding: 0.45rem 0 0.45rem 0.7rem;
+  color: #332a20;
+  line-height: 1.35;
+}
+
+@media (max-width: 820px) {
+  .startPanel .setupGrid {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .rulesPortalButton {
+    top: 0.75rem;
+    left: 0.75rem;
+    min-height: 34px;
+    max-width: 124px;
+    padding: 0.38rem 0.55rem;
+    font-size: 0.82rem;
+  }
+
+  .onlinePortalButton {
+    max-width: 94px;
+  }
+
+  .startHero {
+    padding-top: 3.05rem;
+  }
+
+  .startPanel > .primaryButton {
+    width: min(270px, 100%);
   }
 }

@@ -277,7 +277,7 @@ export function canUseEmergency(player: Player, mode: "once-per-game" | "each-lo
 }
 
 export function cardLabel(card: Card): string {
-  return `${card.value} de ${card.suit}`;
+  return `carta ${card.value}`;
 }
 
 export function applyDamage(state: GameState, playerId: string, damage: number): DamageResult {

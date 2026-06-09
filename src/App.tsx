@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Heart, RotateCcw, Shield, Skull, Swords, Timer, WandSparkles } from "lucide-react";
 import type { ReactNode } from "react";
 import {
@@ -26,6 +26,17 @@ type GameEvent = {
   actorId?: string;
   targetId?: string;
 };
+type OnlinePlayer = { id: string; name: string; host: boolean };
+type OnlineState = {
+  status: "offline" | "connecting" | "lobby" | "playing";
+  roomCode: string;
+  playerId: string | null;
+  playerName: string;
+  joinCode: string;
+  players: OnlinePlayer[];
+  isHost: boolean;
+  error: string;
+};
 
 export function App() {
   const [names, setNames] = useState(defaultNames);
@@ -35,6 +46,19 @@ export function App() {
   const [secondsLeft, setSecondsLeft] = useState(settings.turnSeconds);
   const [reviveNotice, setReviveNotice] = useState("");
   const [lastEvent, setLastEvent] = useState<GameEvent | null>(null);
+  const [onlineOpen, setOnlineOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const [online, setOnline] = useState<OnlineState>({
+    status: "offline",
+    roomCode: "",
+    playerId: null,
+    playerName: "Merlín",
+    joinCode: "",
+    players: [],
+    isHost: false,
+    error: "",
+  });
+  const wsRef = useRef<WebSocket | null>(null);
 
   const currentPlayer = useMemo(
     () => game?.players.find((player) => player.id === game.turnPlayerId) ?? null,
@@ -45,6 +69,8 @@ export function App() {
     [game, currentPlayer],
   );
   const pendingEmergency = game && game.pendingEmergency?.playerId === currentPlayer?.id ? game.pendingEmergency : null;
+  const isOnline = online.status === "lobby" || online.status === "playing";
+  const canControlCurrentPlayer = !isOnline || (online.playerId !== null && currentPlayer?.id === online.playerId);
 
   useEffect(() => {
     if (!reviveNotice) return;
@@ -59,7 +85,7 @@ export function App() {
   }, [lastEvent]);
 
   useEffect(() => {
-    if (!game?.settings.timerEnabled || game.phase !== "playing" || !currentPlayer) return;
+    if (isOnline || !game?.settings.timerEnabled || game.phase !== "playing" || !currentPlayer) return;
     setSecondsLeft(game.settings.turnSeconds);
     const interval = window.setInterval(() => {
       setSecondsLeft((value) => {
@@ -79,17 +105,82 @@ export function App() {
       });
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [game?.turnPlayerId, game?.phase, game?.settings.timerEnabled, game?.settings.turnSeconds, currentPlayer]);
+  }, [isOnline, game?.turnPlayerId, game?.phase, game?.settings.timerEnabled, game?.settings.turnSeconds, currentPlayer]);
 
   function startGame() {
     const cleanNames = names.map((name) => name.trim()).filter(Boolean).slice(0, 5);
     if (cleanNames.length < 2) return;
+    wsRef.current?.close();
+    wsRef.current = null;
+    setOnline((state) => ({ ...state, status: "offline", roomCode: "", playerId: null, players: [], isHost: false, error: "" }));
     setGame(createGame(cleanNames, settings));
     setLastEvent(null);
   }
 
+  function connectOnline(payload: Record<string, unknown>) {
+    wsRef.current?.close();
+    const socket = new WebSocket(onlineServerUrl());
+    wsRef.current = socket;
+    setOnline((state) => ({ ...state, status: "connecting", error: "" }));
+    socket.addEventListener("open", () => socket.send(JSON.stringify(payload)));
+    socket.addEventListener("message", (event) => {
+      const message = JSON.parse(String(event.data));
+      if (message.type === "room_joined") {
+        setOnline((state) => ({
+          ...state,
+          status: "lobby",
+          roomCode: message.roomCode,
+          playerId: null,
+          isHost: Boolean(message.host),
+          error: "",
+        }));
+      }
+      if (message.type === "player_list") {
+        setOnline((state) => ({ ...state, status: state.status === "playing" ? "playing" : "lobby", players: message.players ?? [], roomCode: message.roomCode ?? state.roomCode }));
+      }
+      if (message.type === "game_view") {
+        setOnline((state) => ({ ...state, status: "playing", roomCode: message.roomCode ?? state.roomCode, playerId: message.playerId ?? state.playerId, error: "" }));
+        setGame(message.game);
+        const latest = message.game?.log?.[0]?.text;
+        if (latest) {
+          setLastEvent({ id: Date.now(), kind: "deck", message: latest });
+        }
+      }
+      if (message.type === "error") {
+        setOnline((state) => ({ ...state, error: message.message ?? "Error online." }));
+      }
+    });
+    socket.addEventListener("close", () => {
+      setOnline((state) => (state.status === "offline" ? state : { ...state, status: "offline", error: "Conexión online cerrada." }));
+    });
+  }
+
+  function sendOnline(payload: Record<string, unknown>) {
+    if (wsRef.current?.readyState !== WebSocket.OPEN) {
+      setOnline((state) => ({ ...state, error: "El servidor online no está conectado." }));
+      return;
+    }
+    wsRef.current.send(JSON.stringify(payload));
+  }
+
+  function createOnlineRoom() {
+    connectOnline({ type: "create_room", name: online.playerName });
+  }
+
+  function joinOnlineRoom() {
+    connectOnline({ type: "join_room", name: online.playerName, roomCode: online.joinCode });
+  }
+
+  function startOnlineGame() {
+    sendOnline({ type: "start_game" });
+  }
+
   function chooseArmor(playerId: string, cardId: string) {
     if (!game) return;
+    if (isOnline) {
+      if (playerId === online.playerId) sendOnline({ type: "choose_armor", cardId });
+      return;
+    }
     const nextGame = chooseInitialArmor(game, playerId, cardId);
     setGame(nextGame);
     if (game.phase === "setup" && nextGame.phase === "playing") {
@@ -107,6 +198,10 @@ export function App() {
 
   function resolveAttack(targetIdToResolve: string) {
     if (!game || !currentPlayer) return;
+    if (isOnline) {
+      sendOnline({ type: "attack", targetId: targetIdToResolve });
+      return;
+    }
     const target = game.players.find((player) => player.id === targetIdToResolve);
     const nextGame = attackPlayer(game, currentPlayer.id, targetIdToResolve);
     setGame(nextGame);
@@ -116,6 +211,10 @@ export function App() {
   function resolveArmor(targetIdToResolve: string) {
     if (!game || !currentPlayer) return;
     const resolvedTargetId = targetIdToResolve || currentPlayer.id;
+    if (isOnline) {
+      sendOnline({ type: "swap_armor", targetId: resolvedTargetId });
+      return;
+    }
     const target = game.players.find((player) => player.id === resolvedTargetId);
     const nextGame = swapArmor(game, currentPlayer.id, resolvedTargetId);
     setGame(nextGame);
@@ -124,6 +223,10 @@ export function App() {
 
   function resolveEmergencyAttack(targetIdToResolve: string) {
     if (!game || !currentPlayer) return;
+    if (isOnline) {
+      sendOnline({ type: "resolve_emergency", choice: "attack", targetId: targetIdToResolve });
+      return;
+    }
     const target = game.players.find((player) => player.id === targetIdToResolve);
     const nextGame = emergencyAction(game, currentPlayer.id, "attack", targetIdToResolve);
     setGame(nextGame);
@@ -133,6 +236,10 @@ export function App() {
   function resolveEmergencyArmor(targetIdToResolve: string) {
     if (!game || !currentPlayer) return;
     const resolvedTargetId = targetIdToResolve || currentPlayer.id;
+    if (isOnline) {
+      sendOnline({ type: "resolve_emergency", choice: "armor", targetId: resolvedTargetId });
+      return;
+    }
     const target = game.players.find((player) => player.id === resolvedTargetId);
     const nextGame = emergencyAction(game, currentPlayer.id, "armor", resolvedTargetId);
     setGame(nextGame);
@@ -151,6 +258,10 @@ export function App() {
 
   function resolveEmergencyHp() {
     if (!game || !currentPlayer) return;
+    if (isOnline) {
+      sendOnline({ type: "resolve_emergency", choice: "hp" });
+      return;
+    }
     const nextGame = emergencyAction(game, currentPlayer.id, "hp");
     setGame(nextGame);
     setLastEvent({
@@ -164,6 +275,10 @@ export function App() {
 
   function handlePassTurn() {
     if (!game || !currentPlayer) return;
+    if (isOnline) {
+      sendOnline({ type: "pass_turn" });
+      return;
+    }
     const nextGame = passTurn(game);
     setGame(nextGame);
     setLastEvent({
@@ -178,6 +293,10 @@ export function App() {
   function executeTurn() {
     if (!game || !currentPlayer) return;
     if (currentPlayer.status === "dead") {
+      if (isOnline) {
+        sendOnline({ type: "revive_attempt", guess });
+        return;
+      }
       const nextGame = reviveAttempt(game, currentPlayer.id, guess);
       const revivedPlayer = nextGame.players.find((player) => player.id === currentPlayer.id);
       if (revivedPlayer?.status === "alive" && game.players.find((player) => player.id === currentPlayer.id)?.status === "dead") {
@@ -206,58 +325,73 @@ export function App() {
     return (
       <main className="appShell">
         <section className="startPanel">
-          <div>
-            <p className="eyebrow">Juego de cartas españolas</p>
+          <button className="rulesPortalButton" type="button" onClick={() => setRulesOpen(true)}>
+            <Shield size={18} />
+            Cómo jugar
+          </button>
+          <button className="onlinePortalButton" type="button" onClick={() => setOnlineOpen(true)}>
+            <WandSparkles size={18} />
+            Online
+          </button>
+
+          <header className="startHero">
+            <p className="eyebrow">Duelos de magos</p>
             <h1>Los Magos</h1>
-            <p className="intro">Partida local por turnos para 2 a 5 magos. Elegí HP, armadura y sobreviví hasta el final.</p>
-          </div>
+            <p className="intro">Prepará la mesa, elegí tus reglas y entrá al duelo.</p>
+          </header>
 
           <div className="setupGrid">
-            <section className="settingsBlock">
+            <section className="settingsBlock playerSummons">
               <h2>Jugadores</h2>
               <div className="nameList">
                 {names.map((name, index) => (
-                  <input
-                    key={index}
-                    value={name}
-                    onChange={(event) => setNames(names.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)))}
-                    aria-label={`Jugador ${index + 1}`}
-                  />
+                  <label className="mageNameCard" key={index}>
+                    <span>Mago {index + 1}</span>
+                    <input
+                      value={name}
+                      onChange={(event) => setNames(names.map((item, itemIndex) => (itemIndex === index ? event.target.value : item)))}
+                      aria-label={`Jugador ${index + 1}`}
+                    />
+                  </label>
                 ))}
               </div>
               <div className="buttonRow">
-                <button type="button" onClick={() => setNames([...names, `Mago ${names.length + 1}`].slice(0, 5))} disabled={names.length >= 5}>
+                <button className="runeButton" type="button" onClick={() => setNames([...names, `Mago ${names.length + 1}`].slice(0, 5))} disabled={names.length >= 5}>
                   Agregar
                 </button>
-                <button type="button" onClick={() => setNames(names.slice(0, -1))} disabled={names.length <= 2}>
+                <button className="runeButton" type="button" onClick={() => setNames(names.slice(0, -1))} disabled={names.length <= 2}>
                   Quitar
                 </button>
               </div>
             </section>
 
-            <section className="settingsBlock">
+            <section className="settingsBlock ruleGrimoire">
               <h2>Reglas</h2>
-              <label>
-                Revividas máximas
-                <input
-                  type="number"
-                  min={0}
-                  max={3}
-                  value={settings.maxRevives}
-                  onChange={(event) => setSettings({ ...settings, maxRevives: Number(event.target.value) })}
-                />
-              </label>
-              <label>
-                Emergencia
-                <select
-                  value={settings.emergencyMode}
-                  onChange={(event) => setSettings({ ...settings, emergencyMode: event.target.value as EmergencyMode })}
+              <div className="ruleStepper">
+                <span>Revividas</span>
+                <div>
+                  <button type="button" onClick={() => setSettings({ ...settings, maxRevives: Math.max(0, settings.maxRevives - 1) })}>-</button>
+                  <strong>{settings.maxRevives}</strong>
+                  <button type="button" onClick={() => setSettings({ ...settings, maxRevives: Math.min(3, settings.maxRevives + 1) })}>+</button>
+                </div>
+              </div>
+              <div className="spellSegments" role="group" aria-label="Modo de emergencia">
+                <button
+                  className={settings.emergencyMode === "once-per-game" ? "selected" : ""}
+                  type="button"
+                  onClick={() => setSettings({ ...settings, emergencyMode: "once-per-game" })}
                 >
-                  <option value="once-per-game">Una vez por partida</option>
-                  <option value="each-low-hp">Cada vez con 3 HP o menos</option>
-                </select>
-              </label>
-              <label className="checkLine">
+                  Una vez
+                </button>
+                <button
+                  className={settings.emergencyMode === "each-low-hp" ? "selected" : ""}
+                  type="button"
+                  onClick={() => setSettings({ ...settings, emergencyMode: "each-low-hp" })}
+                >
+                  Con baja vida
+                </button>
+              </div>
+              <label className="timerSwitch">
                 <input
                   type="checkbox"
                   checked={settings.timerEnabled}
@@ -265,24 +399,97 @@ export function App() {
                 />
                 Temporizador
               </label>
-              <label>
-                Segundos por turno
-                <input
-                  type="number"
-                  min={15}
-                  max={180}
-                  value={settings.turnSeconds}
-                  onChange={(event) => setSettings({ ...settings, turnSeconds: Number(event.target.value) })}
-                />
-              </label>
+              {settings.timerEnabled && (
+                <label className="compactRuleInput">
+                  Segundos por turno
+                  <input
+                    type="number"
+                    min={15}
+                    max={180}
+                    value={settings.turnSeconds}
+                    onChange={(event) => setSettings({ ...settings, turnSeconds: Number(event.target.value) })}
+                  />
+                </label>
+              )}
             </section>
           </div>
 
           <button className="primaryButton" type="button" onClick={startGame}>
             <WandSparkles size={18} />
-            Iniciar partida
+            Iniciar duelo
           </button>
         </section>
+
+        {rulesOpen && (
+          <div className="onlineModalBackdrop" role="presentation" onClick={() => setRulesOpen(false)}>
+            <section className="onlineModal rulesModal" role="dialog" aria-modal="true" aria-label="Cómo se juega Los Magos" onClick={(event) => event.stopPropagation()}>
+              <header>
+                <div>
+                  <p className="eyebrow">Reglas del duelo</p>
+                  <h2>Cómo se juega</h2>
+                </div>
+                <button className="iconButton" type="button" title="Cerrar" onClick={() => setRulesOpen(false)}>×</button>
+              </header>
+              <div className="rulesGuide">
+                <p>Cada mago recibe 3 cartas: elegí 1 como armadura y las otras 2 quedan como HP.</p>
+                <p>En tu turno atacás a otro mago o cambiás una armadura. La carta robada define la fuerza de la acción.</p>
+                <p>Si el ataque supera la armadura, la diferencia resta HP. Si el HP llega a 0, el mago cae.</p>
+                <p>Un mago muerto puede adivinar la próxima carta para revivir, si todavía tiene revividas disponibles.</p>
+                <p>Gana el último mago que queda vivo en la mesa.</p>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {onlineOpen && (
+          <div className="onlineModalBackdrop" role="presentation" onClick={() => setOnlineOpen(false)}>
+            <section className="onlineModal" role="dialog" aria-modal="true" aria-label="Portal online" onClick={(event) => event.stopPropagation()}>
+              <header>
+                <div>
+                  <p className="eyebrow">Portal online</p>
+                  <h2>Sala arcana</h2>
+                </div>
+                <button className="iconButton" type="button" title="Cerrar" onClick={() => setOnlineOpen(false)}>×</button>
+              </header>
+              <label>
+                Tu nombre
+                <input
+                  value={online.playerName}
+                  onChange={(event) => setOnline({ ...online, playerName: event.target.value })}
+                  aria-label="Nombre online"
+                />
+              </label>
+              <div className="buttonRow">
+                <button type="button" onClick={createOnlineRoom} disabled={online.status === "connecting"}>
+                  Crear sala
+                </button>
+              </div>
+              <label>
+                Código de sala
+                <input
+                  value={online.joinCode}
+                  onChange={(event) => setOnline({ ...online, joinCode: event.target.value.toUpperCase() })}
+                  aria-label="Código de sala"
+                />
+              </label>
+              <button className="primaryButton" type="button" onClick={joinOnlineRoom} disabled={online.status === "connecting"}>
+                Unirse
+              </button>
+              {online.roomCode && (
+                <div className="onlineLobby">
+                  <strong>Sala {online.roomCode}</strong>
+                  {online.players.map((player) => (
+                    <span key={player.id}>{player.name}{player.host ? " · anfitrión" : ""}</span>
+                  ))}
+                  <button className="primaryButton" type="button" onClick={startOnlineGame} disabled={!online.isHost || online.players.length < 2}>
+                    Iniciar online
+                  </button>
+                </div>
+              )}
+              {online.error && <p className="onlineError">{online.error}</p>}
+            </section>
+          </div>
+        )}
       </main>
     );
   }
@@ -298,14 +505,20 @@ export function App() {
           <span>{reviveNotice}</span>
         </div>
       )}
-      <header className="topBar">
-        <div>
-          <h1>Los Magos</h1>
-        </div>
-        <button className="iconButton" type="button" title="Nueva partida" onClick={() => setGame(null)}>
-          <RotateCcw size={18} />
-        </button>
-      </header>
+      <button
+        className="tableResetButton"
+        type="button"
+        title="Nueva partida"
+        aria-label="Nueva partida"
+        onClick={() => {
+          wsRef.current?.close();
+          wsRef.current = null;
+          setOnline((state) => ({ ...state, status: "offline", roomCode: "", playerId: null, players: [], isHost: false, error: "" }));
+          setGame(null);
+        }}
+      >
+        <RotateCcw size={18} />
+      </button>
 
       {game.phase === "setup" ? (
         <section className="setupTable">
@@ -322,16 +535,22 @@ export function App() {
               <div className={`setupPlayerTray ${player.pendingCards.length === 0 ? "ready" : ""}`} key={player.id}>
                 <header>
                   <h3>{player.name}</h3>
-                  {player.pendingCards.length === 0 ? (
+                  {isOnline && player.id !== online.playerId ? (
+                    <span className="chooseBadge">Esperando</span>
+                  ) : player.pendingCards.length === 0 ? (
                     <span className="readyBadge">Listo</span>
                   ) : (
                     <span className="chooseBadge">Elegir una</span>
                   )}
                 </header>
-                {player.pendingCards.length === 0 ? (
+                {isOnline && player.id !== online.playerId ? (
+                  <div className="setupReadyState">
+                    <span className="emptyState">Elección privada</span>
+                  </div>
+                ) : player.pendingCards.length === 0 ? (
                   <div className="setupReadyState">
                     <CardSlot icon={<Shield size={17} />} label="Armadura">
-                      {player.armorCard ? <PlayingCard card={player.armorCard} horizontal /> : <span className="emptyState">Esperando</span>}
+                      {player.armorCard ? <PlayingCard card={player.armorCard} /> : <span className="emptyState">Esperando</span>}
                     </CardSlot>
                   </div>
                 ) : (
@@ -356,7 +575,7 @@ export function App() {
               {lastEvent && <EventBanner event={lastEvent} />}
               <div className="tableCenter">
                 <DeckPile count={game.drawDeck.length} variant="deck" animated={lastEvent?.kind === "deck" || lastEvent?.kind === "attack"} />
-                <DeckPile count={game.discardPile.length} variant="discard" topCard={game.discardPile[0] ?? null} animated={lastEvent?.kind === "defense"} />
+                <DeckPile count={game.discardPile.length} variant="discard" topCards={game.discardPile.slice(0, 3)} animated={lastEvent?.kind === "defense"} />
               </div>
             </div>
 
@@ -365,8 +584,9 @@ export function App() {
                 player.status === "alive" &&
                 validTargetIds.has(player.id) &&
                 game.phase === "playing" &&
-                currentPlayer?.status === "alive";
-              const canTargetArmor = player.status === "alive" && game.phase === "playing" && currentPlayer?.status === "alive";
+                currentPlayer?.status === "alive" &&
+                canControlCurrentPlayer;
+              const canTargetArmor = player.status === "alive" && game.phase === "playing" && currentPlayer?.status === "alive" && canControlCurrentPlayer;
               return (
                 <PlayerBoard
                   key={player.id}
@@ -377,6 +597,11 @@ export function App() {
                   seatClass={`seat-${index + 1}`}
                   onArmorClick={canTargetArmor ? () => resolveSlotAction(player.id, "armor") : undefined}
                   onHpClick={canTargetAttack ? () => resolveSlotAction(player.id, "hp") : undefined}
+                  reviveGuess={guess}
+                  showRevive={player.status === "dead" && player.id === game.turnPlayerId && game.phase === "playing"}
+                  canRevive={canControlCurrentPlayer}
+                  onReviveGuessChange={setGuess}
+                  onRevive={executeTurn}
                 />
               );
             })}
@@ -402,18 +627,13 @@ export function App() {
                         {secondsLeft}s
                       </span>
                     )}
-                    <button type="button" onClick={handlePassTurn} disabled={Boolean(pendingEmergency)}>Pasar</button>
+                    <button type="button" onClick={handlePassTurn} disabled={Boolean(pendingEmergency) || !canControlCurrentPlayer}>Pasar</button>
                   </div>
                 </div>
 
                 {currentPlayer.status === "dead" ? (
                   <div className="turnControls">
-                    <p>Está muerto. Puede adivinar la próxima carta para revivir si aún tiene revividas disponibles.</p>
-                    <label>
-                      Valor
-                      <input type="number" min={1} max={12} value={guess} onChange={(event) => setGuess(Number(event.target.value))} />
-                    </label>
-                    <button className="primaryButton" type="button" onClick={executeTurn}>Adivinar y revivir</button>
+                    <p className="actionHint">Elegí el número para revivir en la burbuja junto a {currentPlayer.name}.</p>
                   </div>
                 ) : (
                   <div className="turnControls">
@@ -425,8 +645,8 @@ export function App() {
                         </div>
                         <PlayingCard card={pendingEmergency.card} />
                       </section>
-                    ) : canUseEmergency(currentPlayer, game.settings.emergencyMode) ? (
-                      <button className="secretButton" type="button" onClick={() => setGame(revealEmergencyCard(game, currentPlayer.id))}>
+                    ) : canUseEmergency(currentPlayer, game.settings.emergencyMode) && canControlCurrentPlayer ? (
+                      <button className="secretButton" type="button" onClick={() => isOnline ? sendOnline({ type: "reveal_emergency" }) : setGame(revealEmergencyCard(game, currentPlayer.id))}>
                         <WandSparkles size={17} />
                         Revelar carta secreta
                       </button>
@@ -436,9 +656,6 @@ export function App() {
                         <Heart size={16} /> Usar como HP
                       </button>
                     )}
-                    {aliveTargets.length > 0 && (
-                      <p className="actionHint">Objetivos válidos resaltados en la mesa. Un mago no puede atacarse a sí mismo.</p>
-                    )}
                   </div>
                 )}
               </>
@@ -446,11 +663,13 @@ export function App() {
 
             <section className="logPanel">
               <h2>Historial</h2>
-              {game.log.map((entry) => (
-                <p key={entry.id}>
-                  <HighlightedLog text={entry.text} />
-                </p>
-              ))}
+              <div className="logMessages">
+                {game.log.map((entry) => (
+                  <p key={entry.id}>
+                    <HighlightedLog text={entry.text} />
+                  </p>
+                ))}
+              </div>
             </section>
           </aside>
         </>
@@ -461,31 +680,39 @@ export function App() {
 
 function DeckPile({
   count,
-  topCard = null,
+  topCards = [],
   variant,
   animated = false,
 }: {
   count: number;
-  topCard?: Card | null;
+  topCards?: Card[];
   variant: "deck" | "discard";
   animated?: boolean;
 }) {
   return (
     <div className={`deckPile ${variant} ${animated ? "isAnimated" : ""}`}>
       <div className="pileGraphic" aria-hidden="true">
-        {variant === "discard" && topCard ? (
-          <PlayingCard card={topCard} />
+        {variant === "discard" && topCards.length > 0 ? (
+          <div className="discardStack">
+            {topCards.map((card, index) => (
+              <div className={`discardCardLayer layer-${index + 1}`} key={`${card.id}-${index}`}>
+                <PlayingCard card={card} />
+              </div>
+            ))}
+          </div>
         ) : variant === "deck" ? (
           <>
-            <span></span>
-            <span></span>
-            <span></span>
+            <span className="cardBackLayer"></span>
+            <span className="cardBackLayer"></span>
+            <img className="cardBackArt" src={`${import.meta.env.BASE_URL}cards/card-back.webp`} alt="" draggable={false} />
           </>
         ) : null}
       </div>
-      <div className="pileMeta">
-        <strong>{count}</strong>
-      </div>
+      {variant === "deck" && (
+        <div className="pileMeta">
+          <strong>{count}</strong>
+        </div>
+      )}
     </div>
   );
 }
@@ -557,6 +784,11 @@ function PlayerBoard({
   seatClass,
   onArmorClick,
   onHpClick,
+  reviveGuess,
+  showRevive,
+  canRevive,
+  onReviveGuessChange,
+  onRevive,
 }: {
   player: GameState["players"][number];
   active: boolean;
@@ -565,6 +797,11 @@ function PlayerBoard({
   seatClass?: string;
   onArmorClick?: () => void;
   onHpClick?: () => void;
+  reviveGuess?: number;
+  showRevive?: boolean;
+  canRevive?: boolean;
+  onReviveGuessChange?: (value: number) => void;
+  onRevive?: () => void;
 }) {
   const totalHp = hpTotal(player.hpCards);
   const stateClass = [
@@ -575,11 +812,33 @@ function PlayerBoard({
     onArmorClick ? "can-armor" : "",
     onHpClick ? "can-attack" : "",
   ].filter(Boolean).join(" ");
+  if (player.status === "dead") {
+    return (
+      <article className={`playerBoard ${seatClass ?? ""} ${stateClass}`}>
+        <header>
+          <h2>{player.name}</h2>
+          <HpBadge totalHp={0} dead />
+        </header>
+        <div className="deadState" aria-label={`${player.name} está muerto`}>
+          <Skull size={54} />
+        </div>
+        {showRevive && (
+          <ReviveBubble
+            guess={reviveGuess ?? 1}
+            disabled={!canRevive}
+            onGuessChange={onReviveGuessChange}
+            onRevive={onRevive}
+          />
+        )}
+      </article>
+    );
+  }
+
   return (
     <article className={`playerBoard ${seatClass ?? ""} ${stateClass}`}>
       <header>
         <h2>{player.name}</h2>
-        <HpBadge totalHp={totalHp} dead={player.status === "dead"} />
+        <HpBadge totalHp={totalHp} dead={false} />
       </header>
       <CardSlot
         icon={<Shield size={18} />}
@@ -587,11 +846,11 @@ function PlayerBoard({
         interactive={Boolean(onArmorClick)}
         actionIcon={<Shield size={26} />}
         actionType="armor"
-        emptyIcon={player.status === "dead" && !player.armorCard ? <Skull size={32} /> : null}
+        emptyIcon={null}
         onClick={onArmorClick}
         title={`Cambiar armadura de ${player.name}`}
       >
-        {player.armorCard ? <PlayingCard card={player.armorCard} horizontal /> : null}
+        {player.armorCard ? <PlayingCard card={player.armorCard} /> : null}
       </CardSlot>
       <CardSlot
         icon={<Heart size={18} />}
@@ -599,18 +858,55 @@ function PlayerBoard({
         interactive={Boolean(onHpClick)}
         actionIcon={<Swords size={27} />}
         actionType="attack"
-        emptyIcon={player.status === "dead" && player.hpCards.length === 0 ? <Skull size={32} /> : null}
+        emptyIcon={null}
         onClick={onHpClick}
         title={`Atacar a ${player.name}`}
       >
         {player.hpCards.length > 0 ? player.hpCards.map((card, index) => <PlayingCard key={`${card.id}-${index}`} card={card} />) : null}
       </CardSlot>
-      {player.lowHpArmed && player.status === "alive" && (
+      {player.lowHpArmed && (
         <footer>
           <span className="dangerText">Emergencia</span>
         </footer>
       )}
     </article>
+  );
+}
+
+function ReviveBubble({
+  guess,
+  disabled,
+  onGuessChange,
+  onRevive,
+}: {
+  guess: number;
+  disabled?: boolean;
+  onGuessChange?: (value: number) => void;
+  onRevive?: () => void;
+}) {
+  return (
+    <div className="reviveBubble" role="group" aria-label="Revivir">
+      <div className="reviveBubbleHeader">
+        <Skull size={16} />
+        <strong>Revivir</strong>
+      </div>
+      <div className="reviveNumberGrid">
+        {Array.from({ length: 12 }, (_, index) => index + 1).map((value) => (
+          <button
+            className={value === guess ? "selected" : ""}
+            type="button"
+            key={value}
+            disabled={disabled}
+            onClick={() => onGuessChange?.(value)}
+          >
+            {value}
+          </button>
+        ))}
+      </div>
+      <button className="reviveAction" type="button" disabled={disabled} onClick={onRevive}>
+        Probar
+      </button>
+    </div>
   );
 }
 
@@ -626,35 +922,20 @@ function EventBanner({ event }: { event: GameEvent }) {
 
 function PlayingCard({ card, horizontal = false }: { card: Card; horizontal?: boolean }) {
   const [artMissing, setArtMissing] = useState(false);
-  const suit = suitArt[card.suit];
-  const faceLabel = card.value > 9 ? ["Sota", "Caballo", "Rey"][card.value - 10] : null;
   const artSrc = `${import.meta.env.BASE_URL}cards/${card.id}.webp`;
 
   return (
     <div className={`playingCard ${horizontal ? "horizontal" : ""} ${card.suit} ${artMissing ? "missingArt" : ""}`} aria-label={cardLabel(card)}>
       {!artMissing && <img className="cardArt" src={artSrc} alt="" onError={() => setArtMissing(true)} draggable={false} />}
-      <span className="cardCorner top">{card.value}</span>
       {artMissing ? (
         <div className="cardFallback">
-          <strong>{faceLabel ?? card.value}</strong>
-          <span>{suit.name}</span>
-        </div>
-      ) : faceLabel ? (
-        <div className="cardFaceBadge">
-          <strong>{faceLabel}</strong>
+          <strong>{card.value}</strong>
         </div>
       ) : null}
-      <span className="cardCorner bottom">{suit.initial}</span>
+      <span className="cardValueBadge">{card.value}</span>
     </div>
   );
 }
-
-const suitArt: Record<Card["suit"], { initial: string; name: string }> = {
-  oros: { initial: "O", name: "Oros" },
-  copas: { initial: "C", name: "Copas" },
-  espadas: { initial: "E", name: "Espadas" },
-  bastos: { initial: "B", name: "Bastos" },
-};
 
 function HighlightedLog({ text }: { text: string }) {
   const tokenPattern = /(\d+|ataca|atacar|ataque|defiende|defender|defensa|armadura|resiste|revive|revivir|revividas)/gi;
@@ -734,4 +1015,9 @@ function withTurnNotice(message: string, game: GameState): string {
   if (game.phase !== "playing") return message;
   const nextTurnPlayer = game.players.find((player) => player.id === game.turnPlayerId);
   return nextTurnPlayer ? `${message} Turno de ${nextTurnPlayer.name}.` : message;
+}
+
+function onlineServerUrl(): string {
+  const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+  return `${protocol}://${window.location.hostname || "localhost"}:8787`;
 }
