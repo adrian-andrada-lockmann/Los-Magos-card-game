@@ -65,6 +65,27 @@ VITE_LOS_MAGOS_ONLINE_URL=wss://los-magos-online.<tu-subdominio>.workers.dev/ws
 
 Si el frontend se sirve desde el mismo dominio que el Worker, puede omitirse la variable y el cliente usará `/ws`.
 
+### Deploy online con GitHub Actions
+
+El workflow `Deploy Cloudflare Worker` se activa solo si esta variable del repo está en `true`:
+
+```text
+DEPLOY_CLOUDFLARE_WORKER=true
+```
+
+Secrets necesarios:
+
+```text
+CLOUDFLARE_API_TOKEN
+CLOUDFLARE_ACCOUNT_ID
+```
+
+Variable para que GitHub Pages apunte al Worker:
+
+```text
+VITE_LOS_MAGOS_ONLINE_URL=wss://los-magos-online.<tu-subdominio>.workers.dev/ws
+```
+
 ### Checklist antes de publicar
 
 - Dos navegadores crean y se unen a la misma sala.
