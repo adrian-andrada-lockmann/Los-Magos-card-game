@@ -1018,6 +1018,11 @@ function withTurnNotice(message: string, game: GameState): string {
 }
 
 function onlineServerUrl(): string {
+  const configuredUrl = import.meta.env.VITE_LOS_MAGOS_ONLINE_URL;
+  if (configuredUrl) return configuredUrl;
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "ws://localhost:8787";
+  }
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-  return `${protocol}://${window.location.hostname || "localhost"}:8787`;
+  return `${protocol}://${window.location.host}/ws`;
 }

@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "dev:online": "node server/online-server.mjs",
+    "worker:dev": "pnpm dlx wrangler dev --config wrangler.toml",
+    "worker:deploy": "pnpm dlx wrangler deploy --config wrangler.toml",
     "build": "tsc -b && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "vitest run"

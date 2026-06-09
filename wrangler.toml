@@ -1,0 +1,11 @@
+name = "los-magos-online"
+main = "worker/los-magos-worker.mjs"
+compatibility_date = "2024-09-23"
+
+[[durable_objects.bindings]]
+name = "LOS_MAGOS_ROOMS"
+class_name = "LosMagosRooms"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["LosMagosRooms"]

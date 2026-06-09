@@ -39,6 +39,8 @@ jobs:
         run: pnpm test
 
       - name: Build
+        env:
+          VITE_LOS_MAGOS_ONLINE_URL: ${{ vars.VITE_LOS_MAGOS_ONLINE_URL }}
         run: pnpm build
 
       - name: Setup Pages
