@@ -26,11 +26,12 @@ type GameEvent = {
   actorId?: string;
   targetId?: string;
 };
-type OnlinePlayer = { id: string; name: string; host: boolean };
+type OnlinePlayer = { id: string; name: string; host: boolean; connected?: boolean };
 type OnlineState = {
   status: "offline" | "connecting" | "lobby" | "playing";
   roomCode: string;
   playerId: string | null;
+  playerKey: string;
   playerName: string;
   joinCode: string;
   players: OnlinePlayer[];
@@ -52,6 +53,7 @@ export function App() {
     status: "offline",
     roomCode: "",
     playerId: null,
+    playerKey: "",
     playerName: "Merlín",
     joinCode: "",
     players: [],
@@ -59,6 +61,8 @@ export function App() {
     error: "",
   });
   const wsRef = useRef<WebSocket | null>(null);
+  const onlineRef = useRef(online);
+  const reconnectTimerRef = useRef<number | null>(null);
 
   const currentPlayer = useMemo(
     () => game?.players.find((player) => player.id === game.turnPlayerId) ?? null,
@@ -71,6 +75,23 @@ export function App() {
   const pendingEmergency = game && game.pendingEmergency?.playerId === currentPlayer?.id ? game.pendingEmergency : null;
   const isOnline = online.status === "lobby" || online.status === "playing";
   const canControlCurrentPlayer = !isOnline || (online.playerId !== null && currentPlayer?.id === online.playerId);
+
+  useEffect(() => {
+    onlineRef.current = online;
+  }, [online]);
+
+  useEffect(() => {
+    const saved = window.sessionStorage.getItem("los-magos-online-session");
+    if (!saved || wsRef.current) return;
+    try {
+      const session = JSON.parse(saved);
+      if (session?.roomCode && session?.playerKey) {
+        connectOnline({ type: "reconnect_room", roomCode: session.roomCode, playerKey: session.playerKey });
+      }
+    } catch {
+      window.sessionStorage.removeItem("los-magos-online-session");
+    }
+  }, []);
 
   useEffect(() => {
     if (!reviveNotice) return;
@@ -112,7 +133,8 @@ export function App() {
     if (cleanNames.length < 2) return;
     wsRef.current?.close();
     wsRef.current = null;
-    setOnline((state) => ({ ...state, status: "offline", roomCode: "", playerId: null, players: [], isHost: false, error: "" }));
+    window.sessionStorage.removeItem("los-magos-online-session");
+    setOnline((state) => ({ ...state, status: "offline", roomCode: "", playerId: null, playerKey: "", players: [], isHost: false, error: "" }));
     setGame(createGame(cleanNames, settings));
     setLastEvent(null);
   }
@@ -121,6 +143,10 @@ export function App() {
     wsRef.current?.close();
     const socket = new WebSocket(onlineServerUrl());
     wsRef.current = socket;
+    if (reconnectTimerRef.current !== null) {
+      window.clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
     setOnline((state) => ({ ...state, status: "connecting", error: "" }));
     socket.addEventListener("open", () => socket.send(JSON.stringify(payload)));
     socket.addEventListener("message", (event) => {
@@ -131,9 +157,13 @@ export function App() {
           status: "lobby",
           roomCode: message.roomCode,
           playerId: null,
+          playerKey: message.playerKey ?? state.playerKey,
           isHost: Boolean(message.host),
           error: "",
         }));
+        if (message.roomCode && message.playerKey) {
+          window.sessionStorage.setItem("los-magos-online-session", JSON.stringify({ roomCode: message.roomCode, playerKey: message.playerKey }));
+        }
       }
       if (message.type === "player_list") {
         setOnline((state) => ({ ...state, status: state.status === "playing" ? "playing" : "lobby", players: message.players ?? [], roomCode: message.roomCode ?? state.roomCode }));
@@ -151,6 +181,15 @@ export function App() {
       }
     });
     socket.addEventListener("close", () => {
+      if (wsRef.current !== socket) return;
+      const session = onlineRef.current;
+      if (session.roomCode && session.playerKey && session.status !== "offline") {
+        setOnline((state) => ({ ...state, status: "connecting", error: "Reconectando a la sala..." }));
+        reconnectTimerRef.current = window.setTimeout(() => {
+          connectOnline({ type: "reconnect_room", roomCode: session.roomCode, playerKey: session.playerKey });
+        }, 900);
+        return;
+      }
       setOnline((state) => (state.status === "offline" ? state : { ...state, status: "offline", error: "Conexión online cerrada." }));
     });
   }
@@ -513,7 +552,8 @@ export function App() {
         onClick={() => {
           wsRef.current?.close();
           wsRef.current = null;
-          setOnline((state) => ({ ...state, status: "offline", roomCode: "", playerId: null, players: [], isHost: false, error: "" }));
+          window.sessionStorage.removeItem("los-magos-online-session");
+          setOnline((state) => ({ ...state, status: "offline", roomCode: "", playerId: null, playerKey: "", players: [], isHost: false, error: "" }));
           setGame(null);
         }}
       >

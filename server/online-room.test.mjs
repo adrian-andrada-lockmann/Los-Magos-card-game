@@ -144,6 +144,29 @@ describe("online room manager", () => {
     expect(harness.latest(morgana, "game_view").game.pendingEmergency).toBeNull();
   });
 
+  it("keeps a started-game wizard reserved and restores the private view after reconnecting", () => {
+    const harness = createHarness();
+    const { merlin, morgana, roomCode } = createStartedRoom(harness);
+    const merlinKey = harness.latest(merlin, "room_joined").playerKey;
+    const merlinCardId = harness.latest(merlin, "game_view").game.players[0].pendingCards[0].id;
+
+    harness.send(merlin, { type: "choose_armor", cardId: merlinCardId });
+    harness.manager.closePeer(merlin);
+
+    const reconnectedMerlin = harness.peer();
+    harness.send(reconnectedMerlin, { type: "reconnect_room", roomCode, playerKey: merlinKey });
+
+    expect(harness.latest(reconnectedMerlin, "room_joined")).toMatchObject({ roomCode, playerKey: merlinKey });
+    expect(harness.latest(reconnectedMerlin, "game_view").playerId).toBe("player-1");
+    expect(harness.latest(reconnectedMerlin, "game_view").game.players[0].pendingCards).toHaveLength(0);
+
+    const morganaCardId = harness.latest(morgana, "game_view").game.players[1].pendingCards[0].id;
+    harness.send(morgana, { type: "choose_armor", cardId: morganaCardId });
+
+    expect(harness.latest(reconnectedMerlin, "game_view").game.phase).toBe("playing");
+    expect(harness.latest(morgana, "game_view").game.phase).toBe("playing");
+  });
+
   it("enforces room capacity, started-room joins, and host migration", () => {
     const harness = createHarness();
     const host = harness.peer();

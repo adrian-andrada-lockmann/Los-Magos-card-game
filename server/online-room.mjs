@@ -56,6 +56,19 @@ export function createOnlineRoomManager({
       return;
     }
 
+    if (message.type === "reconnect_room") {
+      const room = rooms.get(String(message.roomCode ?? "").trim().toUpperCase());
+      const playerKey = String(message.playerKey ?? "");
+      if (!room) return send(peer, { type: "error", message: "Sala no encontrada." });
+      const player = room.players.find((candidate) => candidate.playerKey === playerKey);
+      if (!player) return send(peer, { type: "error", message: "No se pudo recuperar este mago." });
+      reconnectPeer(peer, room, playerKey);
+      send(peer, { type: "room_joined", roomCode: room.code, playerKey: peer.playerKey, host: room.hostKey === peer.playerKey });
+      broadcastLobby(room);
+      if (room.game) sendGameView(peer, room);
+      return;
+    }
+
     const room = peer.roomCode ? rooms.get(peer.roomCode) : null;
     if (!room) return send(peer, { type: "error", message: "No estás en una sala." });
 
@@ -96,16 +109,37 @@ export function createOnlineRoomManager({
     peer.playerKey = playerKey;
     peer.roomCode = room.code;
     room.hostKey ??= playerKey;
-    room.players.push({ playerKey, playerId: null, name });
+    room.players.push({ playerKey, playerId: null, name, connected: true });
+  }
+
+  function reconnectPeer(peer, room, playerKey) {
+    removePeer(peer);
+    for (const connectedPeer of peers.values()) {
+      if (connectedPeer !== peer && connectedPeer.roomCode === room.code && connectedPeer.playerKey === playerKey) {
+        connectedPeer.roomCode = null;
+        connectedPeer.playerKey = null;
+      }
+    }
+    peer.playerKey = playerKey;
+    peer.roomCode = room.code;
+    room.players = room.players.map((player) => (player.playerKey === playerKey ? { ...player, connected: true } : player));
   }
 
   function removePeer(peer) {
     if (!peer.roomCode) return;
     const room = rooms.get(peer.roomCode);
     if (!room) return;
+    if (room.game) {
+      room.players = room.players.map((player) => (player.playerKey === peer.playerKey ? { ...player, connected: false } : player));
+      peer.roomCode = null;
+      peer.playerKey = null;
+      broadcastLobby(room);
+      return;
+    }
     const previousLength = room.players.length;
     room.players = room.players.filter((player) => player.playerKey !== peer.playerKey);
     peer.roomCode = null;
+    peer.playerKey = null;
     if (room.players.length === 0) {
       rooms.delete(room.code);
       return;
@@ -126,22 +160,26 @@ export function createOnlineRoomManager({
     broadcast(room, {
       type: "player_list",
       roomCode: room.code,
-      players: room.players.map((player) => ({ id: player.playerKey, name: player.name, host: player.playerKey === room.hostKey })),
+      players: room.players.map((player) => ({ id: player.playerKey, name: player.name, host: player.playerKey === room.hostKey, connected: player.connected !== false })),
     });
   }
 
   function broadcastGame(room) {
     for (const peer of peers.values()) {
       if (peer.roomCode !== room.code) continue;
-      const player = room.players.find((candidate) => candidate.playerKey === peer.playerKey);
-      if (!player) continue;
-      send(peer, {
-        type: "game_view",
-        roomCode: room.code,
-        playerId: player.playerId,
-        game: sanitizeGameForPlayer(room.game, player.playerId),
-      });
+      sendGameView(peer, room);
     }
+  }
+
+  function sendGameView(peer, room) {
+    const player = room.players.find((candidate) => candidate.playerKey === peer.playerKey);
+    if (!player?.playerId) return;
+    send(peer, {
+      type: "game_view",
+      roomCode: room.code,
+      playerId: player.playerId,
+      game: sanitizeGameForPlayer(room.game, player.playerId),
+    });
   }
 
   function broadcast(room, payload) {
@@ -157,6 +195,7 @@ export function createOnlineRoomManager({
     closePeer,
     handleMessage,
     removePeer,
+    sendGameView,
     sanitizeGameForPlayer,
     reduceGame,
   };
